@@ -78,5 +78,77 @@
             </div>
         </section>
     </main>
+    <script>
+        //first test logic
+        function testClick() {
+            const delay = document.getElementById('clickDelay').value || 0; 
+            const start = performance.now();
+            const feedback = document.getElementById('clickFeedback');
+            const metrics = document.getElementById('clickMetrics');
 
+            feedback.classList.add('hidden');
+
+            setTimeout(() => {
+                const end = performance.now();
+                feedback.classList.remove('hidden');
+                metrics.innerText = `Metric: Action Executed in ${(end - start).toFixed(0)}ms`;
+            }, delay);
+        }
+        //second test logic
+        function runLoadingTest(type) {
+            const spinner = document.getElementById('spinnerContainer');
+            const skeleton = document.getElementById('skeletonContainer');
+            const content = document.getElementById('loadedContent');
+
+            spinner.classList.add('hidden');
+            skeleton.classList.add('hidden');
+            content.classList.add('hidden');
+            content.classList.remove('flex');
+
+            if (type === 'spinner') {
+                spinner.classList.remove('hidden');
+            } else {
+                skeleton.classList.remove('hidden');
+            }
+
+            setTimeout(() => {
+                spinner.classList.add('hidden');
+                skeleton.classList.add('hidden');
+                content.classList.remove('hidden');
+                content.classList.add('flex');
+            }, 2500);
+
+        }
+
+        //third test logic
+        let isLikedStandard = false;
+        let  isLikedOptimistic = false;
+
+        function toggleLike(isOptimistic) {
+            if(isOptimistic) {
+                const btn = document.getElementById('optimisticBtn');
+                const status = document.getElementById('optimisticStatus');
+                isLikedOptimistic = !isLikedOptimistic;
+                btn.innerText = isLikedOptimistic ? '❤️' : '🤍'
+                status.innerText = 'Updating server...';
+
+                setTimeout(() => {
+                    status.innerText = 'Sync finished';
+                }, 2000);
+            } else {
+                const btn = document.getElementById('standardBtn');
+                const status = document.getElementById('standardStatus');
+                status.innerText = 'Updating server...';
+
+                setTimeout(() => {
+                    isLikedStandard = !isLikedStandard;
+                    btn.innerText = isLikedStandard ? '❤️' : '🤍'
+                    btn.classList.toggle('grayscale', !isLikedStandard);
+                    status.innerText = 'Sync finished';
+                }, 2000);   
+            }
+        }
+
+    </script>
 </body> 
+</html>
