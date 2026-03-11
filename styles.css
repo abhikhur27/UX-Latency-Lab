@@ -20,10 +20,7 @@ body {
   min-height: 100vh;
   font-family: "Outfit", "Segoe UI", sans-serif;
   color: var(--text);
-  background:
-    radial-gradient(circle at 10% 0%, rgba(34, 211, 238, 0.16), transparent 30%),
-    radial-gradient(circle at 90% 0%, rgba(59, 130, 246, 0.16), transparent 30%),
-    var(--bg);
+  background: var(--bg);
 }
 
 .container {
@@ -68,7 +65,7 @@ h1 {
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1rem;
-  background: linear-gradient(180deg, var(--surface-alt), var(--surface));
+  background: var(--surface);
   box-shadow: 0 20px 40px rgba(3, 7, 18, 0.45);
 }
 
@@ -152,7 +149,7 @@ button:hover {
   flex: 1;
   min-width: 12px;
   border-radius: 8px 8px 2px 2px;
-  background: linear-gradient(180deg, #22d3ee, #3b82f6);
+  background: #3b82f6;
 }
 
 .loading-stage {
@@ -190,14 +187,14 @@ button:hover {
 .skeleton div {
   height: 14px;
   border-radius: 6px;
-  background: linear-gradient(90deg, #1c2f5e 0%, #294883 50%, #1c2f5e 100%);
-  background-size: 200% 100%;
-  animation: shimmer 1300ms linear infinite;
+  background: #294883;
+  animation: shimmer 1300ms ease-in-out infinite;
 }
 
 @keyframes shimmer {
-  from { background-position: -200% 0; }
-  to { background-position: 200% 0; }
+  0% { opacity: 0.45; }
+  50% { opacity: 1; }
+  100% { opacity: 0.45; }
 }
 
 .rating-row {
