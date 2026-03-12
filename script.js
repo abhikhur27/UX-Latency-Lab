@@ -75,6 +75,13 @@ function average(values) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
+function percentile(values, pct) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(sorted.length - 1, Math.max(0, Math.ceil((pct / 100) * sorted.length) - 1));
+  return sorted[index];
+}
+
 function syncLikeCounters() {
   standardLikesEl.textContent = String(state.standardLikes);
   optimisticLikesEl.textContent = String(state.optimisticLikes);
@@ -106,7 +113,7 @@ function addLog(message, type) {
 function renderDelayResults() {
   if (!state.delayResults.length) {
     delayChart.innerHTML = '';
-    delaySummary.textContent = 'Average measured delay: -';
+    delaySummary.textContent = 'Average measured delay: - | P95: - | Fastest: -';
     return;
   }
 
@@ -121,7 +128,12 @@ function renderDelayResults() {
     delayChart.appendChild(bar);
   });
 
-  delaySummary.textContent = `Average measured delay: ${average(state.delayResults).toFixed(1)} ms`;
+  const avg = average(state.delayResults);
+  const p95 = percentile(state.delayResults, 95);
+  const fastest = Math.min(...state.delayResults);
+  delaySummary.textContent = `Average measured delay: ${avg.toFixed(1)} ms | P95: ${p95.toFixed(
+    1
+  )} ms | Fastest: ${fastest.toFixed(1)} ms`;
 }
 
 function renderLoadingSummary() {
