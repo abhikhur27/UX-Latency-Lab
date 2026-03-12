@@ -22,6 +22,7 @@ const optimisticAction = document.getElementById('optimistic-action');
 const standardStatus = document.getElementById('standard-status');
 const optimisticStatus = document.getElementById('optimistic-status');
 const eventLog = document.getElementById('event-log');
+const exportSessionButton = document.getElementById('export-session');
 const resetSessionButton = document.getElementById('reset-session');
 
 const STORAGE_KEY = 'ux_latency_lab_state_v1';
@@ -320,6 +321,26 @@ function resetSession() {
   saveState();
 }
 
+function exportSessionData() {
+  const exported = {
+    exportedAt: new Date().toISOString(),
+    delayResults: state.delayResults,
+    loadRatings: state.loadRatings,
+    standardLikes: state.standardLikes,
+    optimisticLikes: state.optimisticLikes,
+    eventEntries: state.eventEntries,
+  };
+
+  const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `ux-latency-lab-session-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  addLog('Exported session snapshot JSON.', 'success');
+}
+
 failRate.addEventListener('input', () => {
   failRateLabel.textContent = failRate.value;
 });
@@ -331,6 +352,7 @@ loadSkeleton.addEventListener('click', () => runLoadingScenario('skeleton'));
 loadingClear.addEventListener('click', clearRatings);
 standardAction.addEventListener('click', runStandard);
 optimisticAction.addEventListener('click', runOptimistic);
+exportSessionButton.addEventListener('click', exportSessionData);
 resetSessionButton.addEventListener('click', resetSession);
 
 renderRatingButtons();
