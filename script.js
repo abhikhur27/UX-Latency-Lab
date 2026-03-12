@@ -23,6 +23,8 @@ const standardStatus = document.getElementById('standard-status');
 const optimisticStatus = document.getElementById('optimistic-status');
 const eventLog = document.getElementById('event-log');
 const exportSessionButton = document.getElementById('export-session');
+const importSessionButton = document.getElementById('import-session');
+const importFileInput = document.getElementById('import-file');
 const resetSessionButton = document.getElementById('reset-session');
 
 const STORAGE_KEY = 'ux_latency_lab_state_v1';
@@ -353,6 +355,33 @@ function exportSessionData() {
   addLog('Exported session snapshot JSON.', 'success');
 }
 
+function importSessionData(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(String(reader.result || '{}'));
+      state.delayResults = Array.isArray(parsed.delayResults) ? parsed.delayResults.slice(0, 20) : [];
+      state.loadRatings = {
+        spinner: Array.isArray(parsed.loadRatings?.spinner) ? parsed.loadRatings.spinner.slice(0, 40) : [],
+        skeleton: Array.isArray(parsed.loadRatings?.skeleton) ? parsed.loadRatings.skeleton.slice(0, 40) : [],
+      };
+      state.standardLikes = Number.isFinite(parsed.standardLikes) ? parsed.standardLikes : 0;
+      state.optimisticLikes = Number.isFinite(parsed.optimisticLikes) ? parsed.optimisticLikes : 0;
+      state.eventEntries = Array.isArray(parsed.eventEntries) ? parsed.eventEntries.slice(0, 14) : [];
+
+      renderDelayResults();
+      renderLoadingSummary();
+      syncLikeCounters();
+      renderEventLog();
+      saveState();
+      addLog('Imported session snapshot JSON.', 'success');
+    } catch (error) {
+      addLog('Import failed: invalid JSON format.', 'fail');
+    }
+  };
+  reader.readAsText(file);
+}
+
 failRate.addEventListener('input', () => {
   failRateLabel.textContent = failRate.value;
 });
@@ -365,6 +394,13 @@ loadingClear.addEventListener('click', clearRatings);
 standardAction.addEventListener('click', runStandard);
 optimisticAction.addEventListener('click', runOptimistic);
 exportSessionButton.addEventListener('click', exportSessionData);
+importSessionButton.addEventListener('click', () => importFileInput.click());
+importFileInput.addEventListener('change', () => {
+  const file = importFileInput.files?.[0];
+  if (!file) return;
+  importSessionData(file);
+  importFileInput.value = '';
+});
 resetSessionButton.addEventListener('click', resetSession);
 
 renderRatingButtons();
