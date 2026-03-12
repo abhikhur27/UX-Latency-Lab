@@ -1,11 +1,11 @@
 :root {
-  --bg: #081026;
-  --surface: #0f1a36;
-  --surface-alt: #122247;
-  --text: #e8eefc;
-  --muted: #a4b3d1;
-  --border: #2b3e72;
-  --accent: #22d3ee;
+  --bg: #090b10;
+  --surface: #12161f;
+  --surface-alt: #171d2b;
+  --text: #edf0f7;
+  --muted: #a4adc1;
+  --border: #2a3344;
+  --accent: #d7defe;
   --success: #34d399;
   --warning: #f59e0b;
   --danger: #f87171;
@@ -66,7 +66,7 @@ h1 {
   border-radius: 16px;
   padding: 1rem;
   background: var(--surface);
-  box-shadow: 0 20px 40px rgba(3, 7, 18, 0.45);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.38);
 }
 
 .panel p {
@@ -96,7 +96,7 @@ input[type="range"] {
 }
 
 input[type="number"] {
-  background: #0b1531;
+  background: #0f1420;
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -105,7 +105,7 @@ input[type="number"] {
 
 button {
   border: 1px solid var(--border);
-  background: #172b56;
+  background: #1a2233;
   color: var(--text);
   border-radius: 10px;
   padding: 0.45rem 0.75rem;
@@ -115,15 +115,16 @@ button {
 button.primary {
   border-color: transparent;
   background: var(--accent);
-  color: #083344;
+  color: #0f1320;
   font-weight: 700;
 }
 
 button:hover {
-  border-color: #4b64a6;
+  border-color: #4f638d;
 }
 
 .button-row {
+  margin-top: 0.65rem;
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -142,7 +143,7 @@ button:hover {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.45rem;
-  background: #0b1531;
+  background: #0f1420;
 }
 
 .bar {
@@ -161,7 +162,7 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #0b1531;
+  background: #0f1420;
   text-align: center;
 }
 
@@ -187,7 +188,7 @@ button:hover {
 .skeleton div {
   height: 14px;
   border-radius: 6px;
-  background: #294883;
+  background: #2b3751;
   animation: shimmer 1300ms ease-in-out infinite;
 }
 
@@ -236,7 +237,7 @@ button:hover {
 .compare-grid article {
   border: 1px solid var(--border);
   border-radius: 12px;
-  background: #0b1531;
+  background: #0f1420;
   padding: 0.7rem;
 }
 
@@ -255,7 +256,7 @@ button:hover {
   border-radius: 8px;
   padding: 0.4rem 0.55rem;
   font-size: 0.86rem;
-  background: #0b1531;
+  background: #0f1420;
 }
 
 .event-log li.success {

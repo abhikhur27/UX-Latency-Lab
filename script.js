@@ -1,11 +1,13 @@
-const delayInput = document.getElementById('delay-input');
+﻿const delayInput = document.getElementById('delay-input');
 const delayRun = document.getElementById('delay-run');
+const delayClear = document.getElementById('delay-clear');
 const delayStatus = document.getElementById('delay-status');
 const delayChart = document.getElementById('delay-chart');
 const delaySummary = document.getElementById('delay-summary');
 
 const loadSpinner = document.getElementById('load-spinner');
 const loadSkeleton = document.getElementById('load-skeleton');
+const loadingClear = document.getElementById('loading-clear');
 const loadingStage = document.getElementById('loading-stage');
 const ratingRow = document.getElementById('rating-row');
 const ratingButtons = document.getElementById('rating-buttons');
@@ -20,46 +22,97 @@ const optimisticAction = document.getElementById('optimistic-action');
 const standardStatus = document.getElementById('standard-status');
 const optimisticStatus = document.getElementById('optimistic-status');
 const eventLog = document.getElementById('event-log');
+const resetSessionButton = document.getElementById('reset-session');
 
-const delayResults = [];
-const loadRatings = {
-  spinner: [],
-  skeleton: [],
-};
+const STORAGE_KEY = 'ux_latency_lab_state_v1';
 
 let currentLoadType = null;
-let standardLikes = 0;
-let optimisticLikes = 0;
 let standardPending = false;
 let optimisticPending = false;
+
+const state = loadState();
+
+function defaultState() {
+  return {
+    delayResults: [],
+    loadRatings: {
+      spinner: [],
+      skeleton: [],
+    },
+    standardLikes: 0,
+    optimisticLikes: 0,
+    eventEntries: [],
+  };
+}
+
+function loadState() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!parsed) return defaultState();
+
+    return {
+      ...defaultState(),
+      ...parsed,
+      loadRatings: {
+        spinner: Array.isArray(parsed.loadRatings?.spinner) ? parsed.loadRatings.spinner : [],
+        skeleton: Array.isArray(parsed.loadRatings?.skeleton) ? parsed.loadRatings.skeleton : [],
+      },
+      eventEntries: Array.isArray(parsed.eventEntries) ? parsed.eventEntries : [],
+      delayResults: Array.isArray(parsed.delayResults) ? parsed.delayResults : [],
+    };
+  } catch (error) {
+    return defaultState();
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
 
 function average(values) {
   if (!values.length) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function addLog(message, type) {
-  const entry = document.createElement('li');
-  entry.className = type || '';
-  entry.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
-  eventLog.prepend(entry);
+function syncLikeCounters() {
+  standardLikesEl.textContent = String(state.standardLikes);
+  optimisticLikesEl.textContent = String(state.optimisticLikes);
+}
 
-  while (eventLog.children.length > 14) {
-    eventLog.removeChild(eventLog.lastChild);
+function renderEventLog() {
+  eventLog.innerHTML = '';
+
+  state.eventEntries.forEach((entry) => {
+    const item = document.createElement('li');
+    item.className = entry.type || '';
+    item.textContent = `${entry.time} - ${entry.message}`;
+    eventLog.appendChild(item);
+  });
+}
+
+function addLog(message, type) {
+  const now = new Date().toLocaleTimeString();
+  state.eventEntries.unshift({ time: now, message, type: type || '' });
+
+  while (state.eventEntries.length > 14) {
+    state.eventEntries.pop();
   }
+
+  renderEventLog();
+  saveState();
 }
 
 function renderDelayResults() {
-  if (!delayResults.length) {
+  if (!state.delayResults.length) {
     delayChart.innerHTML = '';
     delaySummary.textContent = 'Average measured delay: -';
     return;
   }
 
-  const maxValue = Math.max(...delayResults);
+  const maxValue = Math.max(...state.delayResults);
   delayChart.innerHTML = '';
 
-  delayResults.forEach((result) => {
+  state.delayResults.forEach((result) => {
     const bar = document.createElement('div');
     bar.className = 'bar';
     bar.style.height = `${Math.max(8, (result / maxValue) * 100)}%`;
@@ -67,7 +120,21 @@ function renderDelayResults() {
     delayChart.appendChild(bar);
   });
 
-  delaySummary.textContent = `Average measured delay: ${average(delayResults).toFixed(1)} ms`;
+  delaySummary.textContent = `Average measured delay: ${average(state.delayResults).toFixed(1)} ms`;
+}
+
+function renderLoadingSummary() {
+  const spinnerAvg = average(state.loadRatings.spinner);
+  const skeletonAvg = average(state.loadRatings.skeleton);
+
+  if (!state.loadRatings.spinner.length && !state.loadRatings.skeleton.length) {
+    loadingSummary.textContent = 'No ratings recorded.';
+    return;
+  }
+
+  loadingSummary.textContent = `Avg perceived speed (higher is better): spinner ${spinnerAvg.toFixed(2)}, skeleton ${skeletonAvg.toFixed(
+    2
+  )}`;
 }
 
 async function runDelayTrial() {
@@ -84,12 +151,21 @@ async function runDelayTrial() {
   await new Promise((resolve) => setTimeout(resolve, delay));
   const measured = performance.now() - start;
 
-  delayResults.push(measured);
-  if (delayResults.length > 16) delayResults.shift();
+  state.delayResults.push(measured);
+  if (state.delayResults.length > 20) state.delayResults.shift();
 
   delayStatus.textContent = `Measured response: ${measured.toFixed(1)} ms`;
   renderDelayResults();
+  saveState();
+
   delayRun.disabled = false;
+}
+
+function clearDelayTrials() {
+  state.delayResults = [];
+  delayStatus.textContent = 'Delay trials cleared.';
+  renderDelayResults();
+  saveState();
 }
 
 function renderRatingButtons() {
@@ -101,15 +177,12 @@ function renderRatingButtons() {
     button.textContent = String(score);
     button.addEventListener('click', () => {
       if (!currentLoadType) return;
-      loadRatings[currentLoadType].push(score);
 
-      const spinnerAvg = average(loadRatings.spinner);
-      const skeletonAvg = average(loadRatings.skeleton);
-      loadingSummary.textContent = `Avg perceived speed (higher is better): spinner ${spinnerAvg.toFixed(
-        2
-      )}, skeleton ${skeletonAvg.toFixed(2)}`;
-
+      state.loadRatings[currentLoadType].push(score);
       addLog(`${currentLoadType} flow rated ${score}/5`, 'success');
+
+      renderLoadingSummary();
+      saveState();
       ratingRow.classList.add('hidden');
       currentLoadType = null;
     });
@@ -125,6 +198,7 @@ async function runLoadingScenario(type) {
   loadSkeleton.disabled = true;
 
   loadingStage.innerHTML = '';
+
   if (type === 'spinner') {
     const spinner = document.createElement('div');
     spinner.className = 'spinner';
@@ -147,6 +221,15 @@ async function runLoadingScenario(type) {
 
   loadSpinner.disabled = false;
   loadSkeleton.disabled = false;
+}
+
+function clearRatings() {
+  state.loadRatings = { spinner: [], skeleton: [] };
+  loadingSummary.textContent = 'No ratings recorded.';
+  ratingRow.classList.add('hidden');
+  currentLoadType = null;
+  addLog('Loading perception ratings cleared.', 'success');
+  saveState();
 }
 
 function simulateServerCall() {
@@ -173,14 +256,15 @@ async function runStandard() {
 
   try {
     const response = await simulateServerCall();
-    standardLikes += 1;
-    standardLikesEl.textContent = String(standardLikes);
+    state.standardLikes += 1;
+    syncLikeCounters();
     standardStatus.textContent = `Success in ${response.latency.toFixed(0)} ms.`;
     addLog('Standard flow committed like after server confirmation.', 'success');
   } catch (error) {
     standardStatus.textContent = 'Request failed. UI state unchanged.';
     addLog('Standard flow request failed; no UI update applied.', 'fail');
   } finally {
+    saveState();
     standardPending = false;
     standardAction.disabled = false;
   }
@@ -192,8 +276,8 @@ async function runOptimistic() {
   optimisticPending = true;
   optimisticAction.disabled = true;
 
-  optimisticLikes += 1;
-  optimisticLikesEl.textContent = String(optimisticLikes);
+  state.optimisticLikes += 1;
+  syncLikeCounters();
   optimisticStatus.textContent = 'Updated immediately. Syncing with server...';
 
   try {
@@ -201,14 +285,39 @@ async function runOptimistic() {
     optimisticStatus.textContent = `Confirmed in ${response.latency.toFixed(0)} ms.`;
     addLog('Optimistic flow confirmed successfully.', 'success');
   } catch (error) {
-    optimisticLikes -= 1;
-    optimisticLikesEl.textContent = String(optimisticLikes);
+    state.optimisticLikes -= 1;
+    syncLikeCounters();
     optimisticStatus.textContent = 'Server rejected update. Rolled back.';
     addLog('Optimistic flow rolled back after server failure.', 'fail');
   } finally {
+    saveState();
     optimisticPending = false;
     optimisticAction.disabled = false;
   }
+}
+
+function resetSession() {
+  const fresh = defaultState();
+  state.delayResults = fresh.delayResults;
+  state.loadRatings = fresh.loadRatings;
+  state.standardLikes = fresh.standardLikes;
+  state.optimisticLikes = fresh.optimisticLikes;
+  state.eventEntries = fresh.eventEntries;
+
+  standardStatus.textContent = 'Idle';
+  optimisticStatus.textContent = 'Idle';
+  delayStatus.textContent = 'No trials yet.';
+  loadingStage.innerHTML = '<p>Run a loading mode to begin.</p>';
+  ratingRow.classList.add('hidden');
+  currentLoadType = null;
+
+  renderDelayResults();
+  renderLoadingSummary();
+  syncLikeCounters();
+  renderEventLog();
+
+  addLog('Session reset. Local data cleared.', 'success');
+  saveState();
 }
 
 failRate.addEventListener('input', () => {
@@ -216,11 +325,17 @@ failRate.addEventListener('input', () => {
 });
 
 delayRun.addEventListener('click', runDelayTrial);
+delayClear.addEventListener('click', clearDelayTrials);
 loadSpinner.addEventListener('click', () => runLoadingScenario('spinner'));
 loadSkeleton.addEventListener('click', () => runLoadingScenario('skeleton'));
+loadingClear.addEventListener('click', clearRatings);
 standardAction.addEventListener('click', runStandard);
 optimisticAction.addEventListener('click', runOptimistic);
+resetSessionButton.addEventListener('click', resetSession);
 
 renderRatingButtons();
 renderDelayResults();
-addLog('Latency lab initialized.', 'success');
+renderLoadingSummary();
+syncLikeCounters();
+renderEventLog();
+addLog('Latency lab initialized from local session storage.', 'success');

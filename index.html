@@ -26,7 +26,10 @@
         <input id="delay-input" type="number" min="0" max="3000" step="50" value="120">
       </label>
 
-      <button id="delay-run" class="primary" type="button">Run Trial</button>
+      <div class="button-row">
+        <button id="delay-run" class="primary" type="button">Run Trial</button>
+        <button id="delay-clear" type="button">Clear Delay Trials</button>
+      </div>
       <p id="delay-status" class="status" aria-live="polite">No trials yet.</p>
 
       <div id="delay-chart" class="bars" aria-label="Delay chart"></div>
@@ -52,6 +55,7 @@
       </div>
 
       <p id="loading-summary" class="mono small">No ratings recorded.</p>
+      <button id="loading-clear" type="button">Clear Ratings</button>
     </section>
 
     <section class="panel wide">
@@ -81,6 +85,9 @@
 
       <h3>Event Log</h3>
       <ul id="event-log" class="event-log"></ul>
+      <div class="button-row">
+        <button id="reset-session" type="button">Reset Session Data</button>
+      </div>
     </section>
   </main>
 
