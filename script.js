@@ -12,6 +12,7 @@ const loadingStage = document.getElementById('loading-stage');
 const ratingRow = document.getElementById('rating-row');
 const ratingButtons = document.getElementById('rating-buttons');
 const loadingSummary = document.getElementById('loading-summary');
+const labInsights = document.getElementById('lab-insights');
 
 const failRate = document.getElementById('fail-rate');
 const failRateLabel = document.getElementById('fail-rate-label');
@@ -152,6 +153,38 @@ function renderLoadingSummary() {
   )}`;
 }
 
+function renderInsights() {
+  const lines = [];
+
+  if (state.delayResults.length) {
+    const avg = average(state.delayResults);
+    lines.push(avg <= 120 ? 'Delay trials are still in the near-instant range.' : `Average measured delay is ${avg.toFixed(0)} ms, which users will notice.`);
+  } else {
+    lines.push('Run delay trials to see when responsiveness starts to degrade.');
+  }
+
+  if (state.loadRatings.spinner.length || state.loadRatings.skeleton.length) {
+    const spinnerAvg = average(state.loadRatings.spinner);
+    const skeletonAvg = average(state.loadRatings.skeleton);
+    if (spinnerAvg === skeletonAvg) {
+      lines.push('Spinner and skeleton ratings are tied so far.');
+    } else {
+      lines.push(`${skeletonAvg > spinnerAvg ? 'Skeleton screens' : 'Spinners'} currently feel faster in your trial data.`);
+    }
+  } else {
+    lines.push('Rate both loading flows to compare perceived speed.');
+  }
+
+  const optimisticEntries = state.eventEntries.filter((entry) => entry.message.includes('Optimistic flow')).length;
+  lines.push(
+    optimisticEntries
+      ? 'Optimistic actions have enough event history to discuss confirmation vs rollback tradeoffs.'
+      : 'Trigger standard and optimistic saves to collect event-log evidence for the case study.'
+  );
+
+  labInsights.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
+}
+
 async function runDelayTrial() {
   const delay = Number(delayInput.value);
   if (!Number.isFinite(delay) || delay < 0) {
@@ -171,6 +204,7 @@ async function runDelayTrial() {
 
   delayStatus.textContent = `Measured response: ${measured.toFixed(1)} ms`;
   renderDelayResults();
+  renderInsights();
   saveState();
 
   delayRun.disabled = false;
@@ -197,6 +231,7 @@ function renderRatingButtons() {
       addLog(`${currentLoadType} flow rated ${score}/5`, 'success');
 
       renderLoadingSummary();
+      renderInsights();
       saveState();
       ratingRow.classList.add('hidden');
       currentLoadType = null;
@@ -244,6 +279,7 @@ function clearRatings() {
   ratingRow.classList.add('hidden');
   currentLoadType = null;
   addLog('Loading perception ratings cleared.', 'success');
+  renderInsights();
   saveState();
 }
 
@@ -279,6 +315,7 @@ async function runStandard() {
     standardStatus.textContent = 'Request failed. UI state unchanged.';
     addLog('Standard flow request failed; no UI update applied.', 'fail');
   } finally {
+    renderInsights();
     saveState();
     standardPending = false;
     standardAction.disabled = false;
@@ -305,6 +342,7 @@ async function runOptimistic() {
     optimisticStatus.textContent = 'Server rejected update. Rolled back.';
     addLog('Optimistic flow rolled back after server failure.', 'fail');
   } finally {
+    renderInsights();
     saveState();
     optimisticPending = false;
     optimisticAction.disabled = false;
@@ -328,6 +366,7 @@ function resetSession() {
 
   renderDelayResults();
   renderLoadingSummary();
+  renderInsights();
   syncLikeCounters();
   renderEventLog();
 
@@ -371,6 +410,7 @@ function importSessionData(file) {
 
       renderDelayResults();
       renderLoadingSummary();
+      renderInsights();
       syncLikeCounters();
       renderEventLog();
       saveState();
@@ -406,6 +446,7 @@ resetSessionButton.addEventListener('click', resetSession);
 renderRatingButtons();
 renderDelayResults();
 renderLoadingSummary();
+renderInsights();
 syncLikeCounters();
 renderEventLog();
 addLog('Latency lab initialized from local session storage.', 'success');
