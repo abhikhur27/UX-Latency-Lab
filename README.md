@@ -6,6 +6,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 
 1. **Interaction delay threshold**
    - Configure artificial delay.
+   - Apply network profile presets.
    - Run repeated trials.
    - View measured timings and average.
 

@@ -4,6 +4,7 @@ const delayClear = document.getElementById('delay-clear');
 const delayStatus = document.getElementById('delay-status');
 const delayChart = document.getElementById('delay-chart');
 const delaySummary = document.getElementById('delay-summary');
+const networkProfile = document.getElementById('network-profile');
 
 const loadSpinner = document.getElementById('load-spinner');
 const loadSkeleton = document.getElementById('load-skeleton');
@@ -29,6 +30,11 @@ const importFileInput = document.getElementById('import-file');
 const resetSessionButton = document.getElementById('reset-session');
 
 const STORAGE_KEY = 'ux_latency_lab_state_v1';
+const profileMap = {
+  snappy: { delay: 80, failRate: 5, label: 'Snappy Wi-Fi profile loaded.' },
+  mobile: { delay: 180, failRate: 20, label: 'Mobile 5G profile loaded.' },
+  degraded: { delay: 420, failRate: 40, label: 'Degraded campus Wi-Fi profile loaded.' },
+};
 
 let currentLoadType = null;
 let standardPending = false;
@@ -424,6 +430,14 @@ function importSessionData(file) {
 
 failRate.addEventListener('input', () => {
   failRateLabel.textContent = failRate.value;
+});
+networkProfile.addEventListener('change', () => {
+  const profile = profileMap[networkProfile.value];
+  if (!profile) return;
+  delayInput.value = String(profile.delay);
+  failRate.value = String(profile.failRate);
+  failRateLabel.textContent = String(profile.failRate);
+  delayStatus.textContent = profile.label;
 });
 
 delayRun.addEventListener('click', runDelayTrial);
