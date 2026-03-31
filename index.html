@@ -37,12 +37,28 @@
 
       <div class="button-row">
         <button id="delay-run" class="primary" type="button">Run Trial</button>
+        <button id="benchmark-profiles" type="button">Benchmark Profiles</button>
         <button id="delay-clear" type="button">Clear Delay Trials</button>
       </div>
       <p id="delay-status" class="status" aria-live="polite">No trials yet.</p>
 
       <div id="delay-chart" class="bars" aria-label="Delay chart"></div>
       <p id="delay-summary" class="mono small">Average measured delay: - | P95: - | Fastest: -</p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Profile</th>
+              <th>Avg Delay</th>
+              <th>P95</th>
+              <th>Suggested Feedback</th>
+            </tr>
+          </thead>
+          <tbody id="profile-benchmark-body">
+            <tr><td colspan="4" class="empty">Run Benchmark Profiles to compare the built-in network presets.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
 
     <section class="panel">

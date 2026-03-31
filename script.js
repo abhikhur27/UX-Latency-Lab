@@ -1,10 +1,12 @@
 ﻿const delayInput = document.getElementById('delay-input');
 const delayRun = document.getElementById('delay-run');
 const delayClear = document.getElementById('delay-clear');
+const benchmarkProfilesButton = document.getElementById('benchmark-profiles');
 const delayStatus = document.getElementById('delay-status');
 const delayChart = document.getElementById('delay-chart');
 const delaySummary = document.getElementById('delay-summary');
 const networkProfile = document.getElementById('network-profile');
+const profileBenchmarkBody = document.getElementById('profile-benchmark-body');
 
 const loadSpinner = document.getElementById('load-spinner');
 const loadSkeleton = document.getElementById('load-skeleton');
@@ -189,6 +191,53 @@ function renderInsights() {
   );
 
   labInsights.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
+}
+
+function recommendedFeedback(avgDelay) {
+  if (avgDelay <= 120) return 'Immediate state only';
+  if (avgDelay <= 320) return 'Inline pending state';
+  return 'Skeleton or optimistic UI';
+}
+
+async function benchmarkProfiles() {
+  benchmarkProfilesButton.disabled = true;
+  delayStatus.textContent = 'Benchmarking built-in profiles...';
+
+  const rows = [];
+  for (const [key, profile] of Object.entries(profileMap)) {
+    const samples = [];
+
+    for (let index = 0; index < 4; index += 1) {
+      const start = performance.now();
+      await new Promise((resolve) => setTimeout(resolve, profile.delay));
+      samples.push(performance.now() - start);
+    }
+
+    const avg = average(samples);
+    const p95 = percentile(samples, 95);
+    rows.push({
+      label: key === 'snappy' ? 'Snappy Wi-Fi' : key === 'mobile' ? 'Mobile 5G' : 'Degraded campus Wi-Fi',
+      avg,
+      p95,
+      feedback: recommendedFeedback(avg),
+    });
+  }
+
+  profileBenchmarkBody.innerHTML = rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${row.label}</td>
+          <td>${row.avg.toFixed(1)} ms</td>
+          <td>${row.p95.toFixed(1)} ms</td>
+          <td>${row.feedback}</td>
+        </tr>
+      `
+    )
+    .join('');
+
+  delayStatus.textContent = 'Profile benchmark complete.';
+  benchmarkProfilesButton.disabled = false;
 }
 
 async function runDelayTrial() {
@@ -442,6 +491,7 @@ networkProfile.addEventListener('change', () => {
 
 delayRun.addEventListener('click', runDelayTrial);
 delayClear.addEventListener('click', clearDelayTrials);
+benchmarkProfilesButton.addEventListener('click', benchmarkProfiles);
 loadSpinner.addEventListener('click', () => runLoadingScenario('spinner'));
 loadSkeleton.addEventListener('click', () => runLoadingScenario('skeleton'));
 loadingClear.addEventListener('click', clearRatings);

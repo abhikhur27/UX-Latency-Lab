@@ -146,6 +146,39 @@ button:hover {
   background: #0f1420;
 }
 
+.table-wrap {
+  overflow-x: auto;
+  margin-top: 0.7rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.45rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+td {
+  font-size: 0.88rem;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+}
+
 .bar {
   flex: 1;
   min-width: 12px;

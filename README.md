@@ -8,6 +8,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
    - Configure artificial delay.
    - Apply network profile presets.
    - Run repeated trials.
+   - Benchmark all built-in profiles in one shot.
    - View measured timings and average.
 
 2. **Loading feedback perception**
