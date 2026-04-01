@@ -26,6 +26,8 @@ const optimisticAction = document.getElementById('optimistic-action');
 const standardStatus = document.getElementById('standard-status');
 const optimisticStatus = document.getElementById('optimistic-status');
 const eventLog = document.getElementById('event-log');
+const optimisticMetrics = document.getElementById('optimistic-metrics');
+const optimisticRecommendation = document.getElementById('optimistic-recommendation');
 const exportSessionButton = document.getElementById('export-session');
 const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
@@ -53,6 +55,10 @@ function defaultState() {
     },
     standardLikes: 0,
     optimisticLikes: 0,
+    standardRuns: 0,
+    standardFailures: 0,
+    optimisticRuns: 0,
+    optimisticRollbacks: 0,
     eventEntries: [],
   };
 }
@@ -69,6 +75,10 @@ function loadState() {
         spinner: Array.isArray(parsed.loadRatings?.spinner) ? parsed.loadRatings.spinner : [],
         skeleton: Array.isArray(parsed.loadRatings?.skeleton) ? parsed.loadRatings.skeleton : [],
       },
+      standardRuns: Number.isFinite(parsed.standardRuns) ? parsed.standardRuns : 0,
+      standardFailures: Number.isFinite(parsed.standardFailures) ? parsed.standardFailures : 0,
+      optimisticRuns: Number.isFinite(parsed.optimisticRuns) ? parsed.optimisticRuns : 0,
+      optimisticRollbacks: Number.isFinite(parsed.optimisticRollbacks) ? parsed.optimisticRollbacks : 0,
       eventEntries: Array.isArray(parsed.eventEntries) ? parsed.eventEntries : [],
       delayResults: Array.isArray(parsed.delayResults) ? parsed.delayResults : [],
     };
@@ -147,6 +157,36 @@ function renderDelayResults() {
   )} ms | Fastest: ${fastest.toFixed(1)} ms`;
 }
 
+function renderOutcomeStats() {
+  const standardSuccessRate =
+    state.standardRuns > 0 ? ((state.standardRuns - state.standardFailures) / state.standardRuns) * 100 : null;
+  const optimisticConfirmRate =
+    state.optimisticRuns > 0 ? ((state.optimisticRuns - state.optimisticRollbacks) / state.optimisticRuns) * 100 : null;
+
+  optimisticMetrics.textContent = `Standard success: ${
+    standardSuccessRate === null ? '-' : `${standardSuccessRate.toFixed(0)}%`
+  } (${state.standardRuns} runs) | Optimistic confirmation: ${
+    optimisticConfirmRate === null ? '-' : `${optimisticConfirmRate.toFixed(0)}%`
+  } (${state.optimisticRuns} runs)`;
+
+  if (!state.standardRuns && !state.optimisticRuns) {
+    optimisticRecommendation.textContent = 'Run both save flows to compare rollback risk against perceived speed.';
+    return;
+  }
+
+  if ((optimisticConfirmRate ?? 0) >= 85 && (standardSuccessRate ?? 0) >= 85) {
+    optimisticRecommendation.textContent = 'High confirmation rates make optimistic UI a strong default for this failure profile.';
+    return;
+  }
+
+  if ((optimisticConfirmRate ?? 100) < 70) {
+    optimisticRecommendation.textContent = 'Rollback frequency is high enough that optimistic UI needs stronger affordances or should be avoided.';
+    return;
+  }
+
+  optimisticRecommendation.textContent = 'Optimistic UI is plausible, but the rollback rate still needs careful messaging and undo behavior.';
+}
+
 function renderLoadingSummary() {
   const spinnerAvg = average(state.loadRatings.spinner);
   const skeletonAvg = average(state.loadRatings.skeleton);
@@ -189,6 +229,14 @@ function renderInsights() {
       ? 'Optimistic actions have enough event history to discuss confirmation vs rollback tradeoffs.'
       : 'Trigger standard and optimistic saves to collect event-log evidence for the case study.'
   );
+
+  if (state.optimisticRuns || state.standardRuns) {
+    lines.push(
+      state.optimisticRollbacks > state.standardFailures
+        ? 'Optimistic saves are failing more visibly than standard saves in this session.'
+        : 'Optimistic saves are not failing more often than standard saves so far.'
+    );
+  }
 
   labInsights.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
 }
@@ -359,6 +407,7 @@ async function runStandard() {
   standardPending = true;
   standardAction.disabled = true;
   standardStatus.textContent = 'Waiting for server...';
+  state.standardRuns += 1;
 
   try {
     const response = await simulateServerCall();
@@ -367,9 +416,11 @@ async function runStandard() {
     standardStatus.textContent = `Success in ${response.latency.toFixed(0)} ms.`;
     addLog('Standard flow committed like after server confirmation.', 'success');
   } catch (error) {
+    state.standardFailures += 1;
     standardStatus.textContent = 'Request failed. UI state unchanged.';
     addLog('Standard flow request failed; no UI update applied.', 'fail');
   } finally {
+    renderOutcomeStats();
     renderInsights();
     saveState();
     standardPending = false;
@@ -382,6 +433,7 @@ async function runOptimistic() {
 
   optimisticPending = true;
   optimisticAction.disabled = true;
+  state.optimisticRuns += 1;
 
   state.optimisticLikes += 1;
   syncLikeCounters();
@@ -393,10 +445,12 @@ async function runOptimistic() {
     addLog('Optimistic flow confirmed successfully.', 'success');
   } catch (error) {
     state.optimisticLikes -= 1;
+    state.optimisticRollbacks += 1;
     syncLikeCounters();
     optimisticStatus.textContent = 'Server rejected update. Rolled back.';
     addLog('Optimistic flow rolled back after server failure.', 'fail');
   } finally {
+    renderOutcomeStats();
     renderInsights();
     saveState();
     optimisticPending = false;
@@ -410,6 +464,10 @@ function resetSession() {
   state.loadRatings = fresh.loadRatings;
   state.standardLikes = fresh.standardLikes;
   state.optimisticLikes = fresh.optimisticLikes;
+  state.standardRuns = fresh.standardRuns;
+  state.standardFailures = fresh.standardFailures;
+  state.optimisticRuns = fresh.optimisticRuns;
+  state.optimisticRollbacks = fresh.optimisticRollbacks;
   state.eventEntries = fresh.eventEntries;
 
   standardStatus.textContent = 'Idle';
@@ -421,6 +479,7 @@ function resetSession() {
 
   renderDelayResults();
   renderLoadingSummary();
+  renderOutcomeStats();
   renderInsights();
   syncLikeCounters();
   renderEventLog();
@@ -436,6 +495,10 @@ function exportSessionData() {
     loadRatings: state.loadRatings,
     standardLikes: state.standardLikes,
     optimisticLikes: state.optimisticLikes,
+    standardRuns: state.standardRuns,
+    standardFailures: state.standardFailures,
+    optimisticRuns: state.optimisticRuns,
+    optimisticRollbacks: state.optimisticRollbacks,
     eventEntries: state.eventEntries,
   };
 
@@ -461,10 +524,15 @@ function importSessionData(file) {
       };
       state.standardLikes = Number.isFinite(parsed.standardLikes) ? parsed.standardLikes : 0;
       state.optimisticLikes = Number.isFinite(parsed.optimisticLikes) ? parsed.optimisticLikes : 0;
+      state.standardRuns = Number.isFinite(parsed.standardRuns) ? parsed.standardRuns : 0;
+      state.standardFailures = Number.isFinite(parsed.standardFailures) ? parsed.standardFailures : 0;
+      state.optimisticRuns = Number.isFinite(parsed.optimisticRuns) ? parsed.optimisticRuns : 0;
+      state.optimisticRollbacks = Number.isFinite(parsed.optimisticRollbacks) ? parsed.optimisticRollbacks : 0;
       state.eventEntries = Array.isArray(parsed.eventEntries) ? parsed.eventEntries.slice(0, 14) : [];
 
       renderDelayResults();
       renderLoadingSummary();
+      renderOutcomeStats();
       renderInsights();
       syncLikeCounters();
       renderEventLog();
@@ -510,6 +578,7 @@ resetSessionButton.addEventListener('click', resetSession);
 renderRatingButtons();
 renderDelayResults();
 renderLoadingSummary();
+renderOutcomeStats();
 renderInsights();
 syncLikeCounters();
 renderEventLog();
