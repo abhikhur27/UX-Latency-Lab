@@ -22,6 +22,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
    - Optimistic flow updates immediately and rolls back on failure.
    - Event log records behavior over time.
    - Success/rollback rate summary explains when optimistic UI is still justified.
+   - Session memo converts the current experiment data into a product-facing recommendation.
 
 ## Technical Design
 

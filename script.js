@@ -16,6 +16,7 @@ const ratingRow = document.getElementById('rating-row');
 const ratingButtons = document.getElementById('rating-buttons');
 const loadingSummary = document.getElementById('loading-summary');
 const labInsights = document.getElementById('lab-insights');
+const sessionMemo = document.getElementById('session-memo');
 
 const failRate = document.getElementById('fail-rate');
 const failRateLabel = document.getElementById('fail-rate-label');
@@ -135,6 +136,7 @@ function renderDelayResults() {
   if (!state.delayResults.length) {
     delayChart.innerHTML = '';
     delaySummary.textContent = 'Average measured delay: - | P95: - | Fastest: -';
+    renderSessionMemo();
     return;
   }
 
@@ -155,6 +157,7 @@ function renderDelayResults() {
   delaySummary.textContent = `Average measured delay: ${avg.toFixed(1)} ms | P95: ${p95.toFixed(
     1
   )} ms | Fastest: ${fastest.toFixed(1)} ms`;
+  renderSessionMemo();
 }
 
 function renderOutcomeStats() {
@@ -171,20 +174,24 @@ function renderOutcomeStats() {
 
   if (!state.standardRuns && !state.optimisticRuns) {
     optimisticRecommendation.textContent = 'Run both save flows to compare rollback risk against perceived speed.';
+    renderSessionMemo();
     return;
   }
 
   if ((optimisticConfirmRate ?? 0) >= 85 && (standardSuccessRate ?? 0) >= 85) {
     optimisticRecommendation.textContent = 'High confirmation rates make optimistic UI a strong default for this failure profile.';
+    renderSessionMemo();
     return;
   }
 
   if ((optimisticConfirmRate ?? 100) < 70) {
     optimisticRecommendation.textContent = 'Rollback frequency is high enough that optimistic UI needs stronger affordances or should be avoided.';
+    renderSessionMemo();
     return;
   }
 
   optimisticRecommendation.textContent = 'Optimistic UI is plausible, but the rollback rate still needs careful messaging and undo behavior.';
+  renderSessionMemo();
 }
 
 function renderLoadingSummary() {
@@ -193,12 +200,14 @@ function renderLoadingSummary() {
 
   if (!state.loadRatings.spinner.length && !state.loadRatings.skeleton.length) {
     loadingSummary.textContent = 'No ratings recorded.';
+    renderSessionMemo();
     return;
   }
 
   loadingSummary.textContent = `Avg perceived speed (higher is better): spinner ${spinnerAvg.toFixed(2)}, skeleton ${skeletonAvg.toFixed(
     2
   )}`;
+  renderSessionMemo();
 }
 
 function renderInsights() {
@@ -239,6 +248,37 @@ function renderInsights() {
   }
 
   labInsights.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
+}
+
+function renderSessionMemo() {
+  if (!sessionMemo) return;
+
+  const notes = [];
+  if (state.delayResults.length) {
+    const avgDelay = average(state.delayResults);
+    notes.push(`Interaction threshold: ${recommendedFeedback(avgDelay)} at ${avgDelay.toFixed(0)} ms average.`);
+  }
+
+  if (state.loadRatings.spinner.length || state.loadRatings.skeleton.length) {
+    const spinnerAvg = average(state.loadRatings.spinner);
+    const skeletonAvg = average(state.loadRatings.skeleton);
+    const winner = skeletonAvg >= spinnerAvg ? 'Skeleton flow' : 'Spinner flow';
+    notes.push(`Perception winner: ${winner} currently feels faster in user ratings.`);
+  }
+
+  if (state.standardRuns || state.optimisticRuns) {
+    const optimisticRollbackRate =
+      state.optimisticRuns > 0 ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : 0;
+    notes.push(
+      optimisticRollbackRate <= 20
+        ? `Optimistic UI memo: rollback risk is ${optimisticRollbackRate.toFixed(0)}%, so optimistic feedback is defensible.`
+        : `Optimistic UI memo: rollback risk is ${optimisticRollbackRate.toFixed(0)}%, so rollback messaging needs to be explicit.`
+    );
+  }
+
+  sessionMemo.innerHTML = notes.length
+    ? notes.map((note) => `<p>${note}</p>`).join('')
+    : '<p>Run the experiments to produce a session memo.</p>';
 }
 
 function recommendedFeedback(avgDelay) {
