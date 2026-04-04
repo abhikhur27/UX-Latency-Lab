@@ -8,8 +8,9 @@ Interactive lab for testing how latency and feedback patterns influence user per
    - Configure artificial delay.
    - Apply network profile presets.
    - Run repeated trials.
-   - Benchmark all built-in profiles in one shot.
-   - View measured timings and average.
+- Benchmark all built-in profiles in one shot.
+- View measured timings and average.
+- Session percentile cut points for median, P75, P95, and slowest-trial analysis.
 
 2. **Loading feedback perception**
    - Compare spinner vs skeleton loading states.

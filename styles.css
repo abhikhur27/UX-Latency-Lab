@@ -267,6 +267,10 @@ td {
   gap: 0.7rem;
 }
 
+.summary-mini {
+  margin-top: 0.7rem;
+}
+
 .compare-grid article {
   border: 1px solid var(--border);
   border-radius: 12px;

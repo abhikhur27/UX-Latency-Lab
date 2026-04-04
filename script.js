@@ -5,6 +5,10 @@ const benchmarkProfilesButton = document.getElementById('benchmark-profiles');
 const delayStatus = document.getElementById('delay-status');
 const delayChart = document.getElementById('delay-chart');
 const delaySummary = document.getElementById('delay-summary');
+const delayP50 = document.getElementById('delay-p50');
+const delayP75 = document.getElementById('delay-p75');
+const delayP95 = document.getElementById('delay-p95');
+const delaySlowest = document.getElementById('delay-slowest');
 const networkProfile = document.getElementById('network-profile');
 const profileBenchmarkBody = document.getElementById('profile-benchmark-body');
 
@@ -136,6 +140,10 @@ function renderDelayResults() {
   if (!state.delayResults.length) {
     delayChart.innerHTML = '';
     delaySummary.textContent = 'Average measured delay: - | P95: - | Fastest: -';
+    delayP50.textContent = '-';
+    delayP75.textContent = '-';
+    delayP95.textContent = '-';
+    delaySlowest.textContent = '-';
     renderSessionMemo();
     return;
   }
@@ -152,11 +160,18 @@ function renderDelayResults() {
   });
 
   const avg = average(state.delayResults);
+  const p50 = percentile(state.delayResults, 50);
+  const p75 = percentile(state.delayResults, 75);
   const p95 = percentile(state.delayResults, 95);
   const fastest = Math.min(...state.delayResults);
+  const slowest = Math.max(...state.delayResults);
   delaySummary.textContent = `Average measured delay: ${avg.toFixed(1)} ms | P95: ${p95.toFixed(
     1
   )} ms | Fastest: ${fastest.toFixed(1)} ms`;
+  delayP50.textContent = `${p50.toFixed(1)} ms`;
+  delayP75.textContent = `${p75.toFixed(1)} ms`;
+  delayP95.textContent = `${p95.toFixed(1)} ms`;
+  delaySlowest.textContent = `${slowest.toFixed(1)} ms`;
   renderSessionMemo();
 }
 
