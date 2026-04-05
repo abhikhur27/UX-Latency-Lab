@@ -21,6 +21,7 @@ const ratingButtons = document.getElementById('rating-buttons');
 const loadingSummary = document.getElementById('loading-summary');
 const labInsights = document.getElementById('lab-insights');
 const sessionMemo = document.getElementById('session-memo');
+const policyScorecard = document.getElementById('policy-scorecard');
 
 const failRate = document.getElementById('fail-rate');
 const failRateLabel = document.getElementById('fail-rate-label');
@@ -294,6 +295,53 @@ function renderSessionMemo() {
   sessionMemo.innerHTML = notes.length
     ? notes.map((note) => `<p>${note}</p>`).join('')
     : '<p>Run the experiments to produce a session memo.</p>';
+  renderPolicyScorecard();
+}
+
+function renderPolicyScorecard() {
+  if (!policyScorecard) return;
+
+  const cards = [];
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+
+  cards.push({
+    title: 'Action feedback',
+    detail:
+      avgDelay === null
+        ? 'Need delay trials before choosing between silent, inline, or heavy feedback states.'
+        : avgDelay <= 120
+          ? 'Keep actions lightweight. Immediate state changes should be enough for this latency band.'
+          : avgDelay <= 320
+            ? 'Use inline pending feedback. Full skeletons are likely overkill at this response time.'
+            : 'Escalate to stronger loading affordances or optimistic updates because the delay is noticeable.',
+  });
+
+  cards.push({
+    title: 'Loading treatment',
+    detail:
+      spinnerAvg === null && skeletonAvg === null
+        ? 'Collect loader ratings before standardizing a waiting pattern.'
+        : (skeletonAvg ?? 0) >= (spinnerAvg ?? 0)
+          ? 'Skeleton screens are currently winning the perception test in this session.'
+          : 'Spinners are currently landing better than skeletons in this session.',
+  });
+
+  cards.push({
+    title: 'Commit strategy',
+    detail:
+      rollbackRate === null
+        ? 'Run optimistic and standard saves before locking the commit pattern.'
+        : rollbackRate <= 20
+          ? `Optimistic UI is viable here. Rollback rate is ${rollbackRate.toFixed(0)}%.`
+          : `Keep stronger rollback messaging or fall back to standard commits. Rollback rate is ${rollbackRate.toFixed(0)}%.`,
+  });
+
+  policyScorecard.innerHTML = cards
+    .map((card) => `<p><strong>${card.title}:</strong> ${card.detail}</p>`)
+    .join('');
 }
 
 function recommendedFeedback(avgDelay) {
