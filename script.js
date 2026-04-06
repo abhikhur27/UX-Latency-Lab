@@ -38,6 +38,8 @@ const exportSessionButton = document.getElementById('export-session');
 const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
 const resetSessionButton = document.getElementById('reset-session');
+const sweepFailureRatesButton = document.getElementById('sweep-failure-rates');
+const failureSweepBody = document.getElementById('failure-sweep-body');
 
 const STORAGE_KEY = 'ux_latency_lab_state_v1';
 const profileMap = {
@@ -350,6 +352,12 @@ function recommendedFeedback(avgDelay) {
   return 'Skeleton or optimistic UI';
 }
 
+function optimisticRecommendationForRate(rollbackRate) {
+  if (rollbackRate <= 15) return 'Optimistic UI is viable';
+  if (rollbackRate <= 30) return 'Use optimistic UI with explicit undo';
+  return 'Prefer standard confirmation';
+}
+
 async function benchmarkProfiles() {
   benchmarkProfilesButton.disabled = true;
   delayStatus.textContent = 'Benchmarking built-in profiles...';
@@ -389,6 +397,44 @@ async function benchmarkProfiles() {
 
   delayStatus.textContent = 'Profile benchmark complete.';
   benchmarkProfilesButton.disabled = false;
+}
+
+function sweepFailureRates() {
+  if (!failureSweepBody) return;
+
+  const sampleSize = 200;
+  const rates = [0, 10, 25, 40, 60];
+  const rows = rates.map((rate) => {
+    let rollbacks = 0;
+    for (let index = 0; index < sampleSize; index += 1) {
+      if (Math.random() * 100 < rate) {
+        rollbacks += 1;
+      }
+    }
+
+    const rollbackRate = (rollbacks / sampleSize) * 100;
+    return {
+      rate,
+      confirmed: `${(100 - rollbackRate).toFixed(0)}%`,
+      rollback: `${rollbackRate.toFixed(0)}%`,
+      recommendation: optimisticRecommendationForRate(rollbackRate),
+    };
+  });
+
+  failureSweepBody.innerHTML = rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${row.rate}%</td>
+          <td>${row.confirmed}</td>
+          <td>${row.rollback}</td>
+          <td>${row.recommendation}</td>
+        </tr>
+      `
+    )
+    .join('');
+
+  addLog('Failure-rate sweep completed for optimistic UI guidance.', 'success');
 }
 
 async function runDelayTrial() {
@@ -677,6 +723,7 @@ importFileInput.addEventListener('change', () => {
   importFileInput.value = '';
 });
 resetSessionButton.addEventListener('click', resetSession);
+sweepFailureRatesButton.addEventListener('click', sweepFailureRates);
 
 renderRatingButtons();
 renderDelayResults();

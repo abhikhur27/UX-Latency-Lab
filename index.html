@@ -140,6 +140,22 @@
         <button id="import-session" type="button">Import Session JSON</button>
         <input id="import-file" type="file" accept="application/json" class="hidden">
         <button id="reset-session" type="button">Reset Session Data</button>
+        <button id="sweep-failure-rates" type="button">Sweep Failure Rates</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Failure Rate</th>
+              <th>Optimistic Confirmed</th>
+              <th>Rollback Risk</th>
+              <th>Recommendation</th>
+            </tr>
+          </thead>
+          <tbody id="failure-sweep-body">
+            <tr><td colspan="4" class="empty">Run the sweep to compare optimistic UI viability across failure rates.</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
   </main>
