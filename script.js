@@ -34,6 +34,7 @@ const optimisticStatus = document.getElementById('optimistic-status');
 const eventLog = document.getElementById('event-log');
 const optimisticMetrics = document.getElementById('optimistic-metrics');
 const optimisticRecommendation = document.getElementById('optimistic-recommendation');
+const releaseBoard = document.getElementById('release-board');
 const exportSessionButton = document.getElementById('export-session');
 const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
@@ -344,6 +345,38 @@ function renderPolicyScorecard() {
   policyScorecard.innerHTML = cards
     .map((card) => `<p><strong>${card.title}:</strong> ${card.detail}</p>`)
     .join('');
+  renderReleaseBoard();
+}
+
+function renderReleaseBoard() {
+  if (!releaseBoard) return;
+
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+
+  const delayVerdict =
+    avgDelay === null ? 'Collect more delay trials.' : avgDelay <= 180 ? 'Green on action latency.' : avgDelay <= 350 ? 'Yellow: visible lag band.' : 'Red: delay will be felt.';
+  const loaderVerdict =
+    spinnerAvg === null && skeletonAvg === null
+      ? 'No loader preference data yet.'
+      : (skeletonAvg ?? 0) >= (spinnerAvg ?? 0)
+        ? 'Skeletons are winning perceived-speed ratings.'
+        : 'Spinners are winning perceived-speed ratings.';
+  const commitVerdict =
+    rollbackRate === null
+      ? 'No commit-strategy evidence yet.'
+      : rollbackRate <= 20
+        ? `Optimistic UI looks shippable at ${rollbackRate.toFixed(0)}% rollback risk.`
+        : `Rollback risk is ${rollbackRate.toFixed(0)}%, so ship with stronger undo/copy or stay conservative.`;
+
+  releaseBoard.innerHTML = `
+    <p><strong>Release Readiness</strong></p>
+    <p>${delayVerdict}</p>
+    <p>${loaderVerdict}</p>
+    <p>${commitVerdict}</p>
+  `;
 }
 
 function recommendedFeedback(avgDelay) {
