@@ -35,6 +35,7 @@ const eventLog = document.getElementById('event-log');
 const optimisticMetrics = document.getElementById('optimistic-metrics');
 const optimisticRecommendation = document.getElementById('optimistic-recommendation');
 const releaseBoard = document.getElementById('release-board');
+const launchChecklist = document.getElementById('launch-checklist');
 const exportSessionButton = document.getElementById('export-session');
 const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
@@ -377,6 +378,55 @@ function renderReleaseBoard() {
     <p>${loaderVerdict}</p>
     <p>${commitVerdict}</p>
   `;
+  renderLaunchChecklist();
+}
+
+function renderLaunchChecklist() {
+  if (!launchChecklist) return;
+
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+
+  const checks = [
+    {
+      label: 'Interaction budget',
+      status: avgDelay === null ? 'Needs data' : avgDelay <= 180 ? 'Pass' : avgDelay <= 320 ? 'Watch' : 'Fail',
+      detail:
+        avgDelay === null
+          ? 'Run more delay trials before choosing a default feedback tier.'
+          : avgDelay <= 180
+            ? 'Current latency is inside the quick-response band.'
+            : avgDelay <= 320
+              ? 'Latency is visible, so inline pending feedback should be mandatory.'
+              : 'Latency is heavy enough that stronger loader or optimistic treatment is needed.',
+    },
+    {
+      label: 'Loader preference',
+      status: spinnerAvg === null && skeletonAvg === null ? 'Needs data' : 'Pass',
+      detail:
+        spinnerAvg === null && skeletonAvg === null
+          ? 'No perception ratings yet.'
+          : `${(skeletonAvg ?? 0) >= (spinnerAvg ?? 0) ? 'Skeleton' : 'Spinner'} flow is winning the current rating sample.`,
+    },
+    {
+      label: 'Optimistic rollback risk',
+      status: rollbackRate === null ? 'Needs data' : rollbackRate <= 20 ? 'Pass' : rollbackRate <= 35 ? 'Watch' : 'Fail',
+      detail:
+        rollbackRate === null
+          ? 'Run both commit flows before standardizing on optimistic updates.'
+          : rollbackRate <= 20
+            ? `Rollback risk is ${rollbackRate.toFixed(0)}%, which is acceptable for optimistic UI.`
+            : rollbackRate <= 35
+              ? `Rollback risk is ${rollbackRate.toFixed(0)}%; ship only with clear undo or retry messaging.`
+              : `Rollback risk is ${rollbackRate.toFixed(0)}%; standard confirmation is safer.`,
+    },
+  ];
+
+  launchChecklist.innerHTML = checks
+    .map((check) => `<p><strong>${check.label} (${check.status}):</strong> ${check.detail}</p>`)
+    .join('');
 }
 
 function recommendedFeedback(avgDelay) {
