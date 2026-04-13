@@ -35,6 +35,7 @@ const eventLog = document.getElementById('event-log');
 const optimisticMetrics = document.getElementById('optimistic-metrics');
 const optimisticRecommendation = document.getElementById('optimistic-recommendation');
 const releaseBoard = document.getElementById('release-board');
+const budgetCoach = document.getElementById('budget-coach');
 const launchChecklist = document.getElementById('launch-checklist');
 const exportSessionButton = document.getElementById('export-session');
 const importSessionButton = document.getElementById('import-session');
@@ -378,7 +379,41 @@ function renderReleaseBoard() {
     <p>${loaderVerdict}</p>
     <p>${commitVerdict}</p>
   `;
+  renderBudgetCoach();
   renderLaunchChecklist();
+}
+
+function renderBudgetCoach() {
+  if (!budgetCoach) return;
+
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const p95Delay = state.delayResults.length ? percentile(state.delayResults, 95) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+  const loaderWinner =
+    spinnerAvg === null && skeletonAvg === null
+      ? 'Collect loader ratings before standardizing a waiting treatment.'
+      : (skeletonAvg ?? 0) >= (spinnerAvg ?? 0)
+        ? 'Skeletons are the safer default for this session.'
+        : 'Spinners are currently landing better than skeletons.';
+
+  const lines = [];
+  lines.push(
+    avgDelay === null
+      ? 'Latency budget coach: run delay trials to establish the response-time band.'
+      : `Latency budget coach: average ${avgDelay.toFixed(0)} ms and P95 ${p95Delay.toFixed(0)} ms place this flow in the ${recommendedFeedback(avgDelay).toLowerCase()} band.`
+  );
+  lines.push(loaderWinner);
+  lines.push(
+    rollbackRate === null
+      ? 'Commit strategy still needs evidence from both optimistic and standard runs.'
+      : rollbackRate <= 20
+        ? `Optimistic updates are supportable here because rollback risk is ${rollbackRate.toFixed(0)}%.`
+        : `Rollback risk is ${rollbackRate.toFixed(0)}%, so optimistic updates need undo messaging or should stay limited.`
+  );
+
+  budgetCoach.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
 }
 
 function renderLaunchChecklist() {
