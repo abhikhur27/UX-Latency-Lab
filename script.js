@@ -38,6 +38,7 @@ const releaseBoard = document.getElementById('release-board');
 const budgetCoach = document.getElementById('budget-coach');
 const launchChecklist = document.getElementById('launch-checklist');
 const exportSessionButton = document.getElementById('export-session');
+const copyReportButton = document.getElementById('copy-report');
 const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
 const resetSessionButton = document.getElementById('reset-session');
@@ -779,6 +780,41 @@ function exportSessionData() {
   addLog('Exported session snapshot JSON.', 'success');
 }
 
+function buildSessionReport() {
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const p95Delay = state.delayResults.length ? percentile(state.delayResults, 95) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const optimisticRollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+  const standardFailureRate = state.standardRuns ? (state.standardFailures / state.standardRuns) * 100 : null;
+
+  return [
+    '# UX Latency Lab Session Report',
+    '',
+    `Generated: ${new Date().toISOString()}`,
+    '',
+    '## Interaction Delay',
+    avgDelay === null
+      ? '- No delay trials recorded yet.'
+      : `- Average: ${avgDelay.toFixed(1)} ms | P95: ${p95Delay.toFixed(1)} ms | Recommendation: ${recommendedFeedback(avgDelay)}`,
+    '',
+    '## Loading Perception',
+    spinnerAvg === null && skeletonAvg === null
+      ? '- No loading ratings recorded yet.'
+      : `- Spinner avg: ${spinnerAvg === null ? '-' : spinnerAvg.toFixed(2)} | Skeleton avg: ${skeletonAvg === null ? '-' : skeletonAvg.toFixed(2)}`,
+    '',
+    '## Optimistic UI',
+    state.standardRuns || state.optimisticRuns
+      ? `- Standard failure rate: ${standardFailureRate === null ? '-' : `${standardFailureRate.toFixed(0)}%`} | Optimistic rollback rate: ${
+          optimisticRollbackRate === null ? '-' : `${optimisticRollbackRate.toFixed(0)}%`
+        }`
+      : '- No optimistic-vs-standard trials recorded yet.',
+    '',
+    '## Current Verdict',
+    `- ${optimisticRecommendation.textContent}`,
+  ].join('\n');
+}
+
 function importSessionData(file) {
   const reader = new FileReader();
   reader.onload = () => {
@@ -833,6 +869,14 @@ loadingClear.addEventListener('click', clearRatings);
 standardAction.addEventListener('click', runStandard);
 optimisticAction.addEventListener('click', runOptimistic);
 exportSessionButton.addEventListener('click', exportSessionData);
+copyReportButton.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(buildSessionReport());
+    addLog('Copied session report to clipboard.', 'success');
+  } catch (error) {
+    addLog('Clipboard copy failed while building the session report.', 'fail');
+  }
+});
 importSessionButton.addEventListener('click', () => importFileInput.click());
 importFileInput.addEventListener('change', () => {
   const file = importFileInput.files?.[0];
