@@ -36,6 +36,7 @@ const optimisticMetrics = document.getElementById('optimistic-metrics');
 const optimisticRecommendation = document.getElementById('optimistic-recommendation');
 const releaseBoard = document.getElementById('release-board');
 const budgetCoach = document.getElementById('budget-coach');
+const latencyPosture = document.getElementById('latency-posture');
 const launchChecklist = document.getElementById('launch-checklist');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
@@ -415,6 +416,48 @@ function renderBudgetCoach() {
   );
 
   budgetCoach.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
+  renderLatencyPosture();
+}
+
+function renderLatencyPosture() {
+  if (!latencyPosture) return;
+
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const p95Delay = state.delayResults.length ? percentile(state.delayResults, 95) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+
+  if (avgDelay === null && rollbackRate === null && skeletonAvg === null && spinnerAvg === null) {
+    latencyPosture.innerHTML = '<p><strong>Latency posture:</strong> Needs evidence. Run the three lab tracks to produce an operating posture.</p>';
+    return;
+  }
+
+  const posture =
+    avgDelay !== null && avgDelay <= 180 && (rollbackRate === null || rollbackRate <= 20)
+      ? 'Tight'
+      : avgDelay !== null && avgDelay <= 320 && (rollbackRate === null || rollbackRate <= 30)
+        ? 'Manageable'
+        : 'Fragile';
+  const loaderWinner =
+    skeletonAvg === null && spinnerAvg === null
+      ? 'No loader preference evidence yet.'
+      : (skeletonAvg ?? 0) >= (spinnerAvg ?? 0)
+        ? 'Skeletons currently carry the wait-state better.'
+        : 'Spinners currently feel lighter than skeletons.';
+  const rollbackNote =
+    rollbackRate === null
+      ? 'Optimistic rollback risk still needs data.'
+      : rollbackRate <= 20
+        ? `Rollback risk is contained at ${rollbackRate.toFixed(0)}%.`
+        : `Rollback risk has climbed to ${rollbackRate.toFixed(0)}%, so failure copy matters.`;
+
+  latencyPosture.innerHTML = `
+    <p><strong>Latency posture: ${posture}</strong></p>
+    <p>${avgDelay === null ? 'Delay band still needs more trials.' : `Measured average ${avgDelay.toFixed(0)} ms with P95 ${p95Delay.toFixed(0)} ms.`}</p>
+    <p>${loaderWinner}</p>
+    <p>${rollbackNote}</p>
+  `;
 }
 
 function renderLaunchChecklist() {

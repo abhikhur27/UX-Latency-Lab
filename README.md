@@ -26,6 +26,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Session memo converts the current experiment data into a product-facing recommendation.
 - Policy scorecard turns the current session into concrete guidance for action feedback, loader choice, and commit strategy.
 - Release-readiness board condenses all three experiments into a single ship/no-ship style brief.
+- Latency posture board turns the full session into a compact operating read on tail risk, loader posture, and rollback pressure.
 
 ## Technical Design
 
