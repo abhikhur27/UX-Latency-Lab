@@ -46,6 +46,7 @@ const importFileInput = document.getElementById('import-file');
 const resetSessionButton = document.getElementById('reset-session');
 const sweepFailureRatesButton = document.getElementById('sweep-failure-rates');
 const failureSweepBody = document.getElementById('failure-sweep-body');
+const failureSweepSummary = document.getElementById('failure-sweep-summary');
 
 const STORAGE_KEY = 'ux_latency_lab_state_v1';
 const profileMap = {
@@ -606,6 +607,18 @@ function sweepFailureRates() {
       `
     )
     .join('');
+
+  if (failureSweepSummary) {
+    const safeBand = rows.filter((row) => row.recommendation === 'Optimistic UI is viable');
+    const guardedBand = rows.filter((row) => row.recommendation === 'Use optimistic UI with explicit undo');
+    const riskyBand = rows.filter((row) => row.recommendation === 'Prefer standard confirmation');
+    const safest = safeBand.length ? `${safeBand[0].rate}%-${safeBand[safeBand.length - 1].rate}%` : 'none';
+    const guarded = guardedBand.length ? `${guardedBand[0].rate}%-${guardedBand[guardedBand.length - 1].rate}%` : 'none';
+    const risky = riskyBand.length ? `${riskyBand[0].rate}%+` : 'none';
+    failureSweepSummary.innerHTML = `
+      <p><strong>Policy boundary:</strong> optimistic UI is comfortable in the ${safest} failure band, needs explicit undo in the ${guarded} band, and becomes hard to justify at ${risky}.</p>
+    `;
+  }
 
   addLog('Failure-rate sweep completed for optimistic UI guidance.', 'success');
 }

@@ -28,6 +28,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Policy scorecard turns the current session into concrete guidance for action feedback, loader choice, and commit strategy.
 - Release-readiness board condenses all three experiments into a single ship/no-ship style brief.
 - Latency posture board turns the full session into a compact operating read on tail risk, loader posture, and rollback pressure.
+- Failure-rate sweep now ends with a policy-boundary summary so optimistic UI guidance reads like a decision memo instead of a raw table.
 
 ## Technical Design
 
