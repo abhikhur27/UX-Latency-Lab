@@ -11,6 +11,7 @@ const delayP95 = document.getElementById('delay-p95');
 const delaySlowest = document.getElementById('delay-slowest');
 const networkProfile = document.getElementById('network-profile');
 const profileBenchmarkBody = document.getElementById('profile-benchmark-body');
+const profileBenchmarkSummary = document.getElementById('profile-benchmark-summary');
 
 const loadSpinner = document.getElementById('load-spinner');
 const loadSkeleton = document.getElementById('load-skeleton');
@@ -556,6 +557,16 @@ async function benchmarkProfiles() {
       `
     )
     .join('');
+
+  if (profileBenchmarkSummary) {
+    const fastest = rows.reduce((best, row) => (row.avg < best.avg ? row : best));
+    const harshest = rows.reduce((worst, row) => (row.p95 > worst.p95 ? row : worst));
+    profileBenchmarkSummary.innerHTML = `
+      <p><strong>Fastest profile:</strong> ${fastest.label} at ${fastest.avg.toFixed(1)} ms average.</p>
+      <p><strong>Harshest profile:</strong> ${harshest.label} at ${harshest.p95.toFixed(1)} ms P95.</p>
+      <p><strong>Takeaway:</strong> Size feedback patterns for the harshest band, not the happy path.</p>
+    `;
+  }
 
   delayStatus.textContent = 'Profile benchmark complete.';
   benchmarkProfilesButton.disabled = false;
