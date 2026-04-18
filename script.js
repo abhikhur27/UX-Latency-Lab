@@ -38,6 +38,7 @@ const optimisticRecommendation = document.getElementById('optimistic-recommendat
 const releaseBoard = document.getElementById('release-board');
 const budgetCoach = document.getElementById('budget-coach');
 const latencyPosture = document.getElementById('latency-posture');
+const evidenceCoverage = document.getElementById('evidence-coverage');
 const launchChecklist = document.getElementById('launch-checklist');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
@@ -508,6 +509,31 @@ function renderLaunchChecklist() {
   launchChecklist.innerHTML = checks
     .map((check) => `<p><strong>${check.label} (${check.status}):</strong> ${check.detail}</p>`)
     .join('');
+  renderEvidenceCoverage();
+}
+
+function renderEvidenceCoverage() {
+  if (!evidenceCoverage) return;
+
+  const delayReady = state.delayResults.length >= 3;
+  const loaderReady = state.loadRatings.spinner.length > 0 && state.loadRatings.skeleton.length > 0;
+  const optimisticReady = state.standardRuns > 0 && state.optimisticRuns > 0;
+  const covered = [delayReady, loaderReady, optimisticReady].filter(Boolean).length;
+  const nextGap = !delayReady
+    ? 'Run at least three delay trials.'
+    : !loaderReady
+      ? 'Rate both spinner and skeleton flows.'
+      : !optimisticReady
+        ? 'Run both standard and optimistic commits.'
+        : 'The session has enough evidence to support a product-facing recommendation.';
+
+  evidenceCoverage.innerHTML = `
+    <p><strong>Evidence coverage:</strong> ${covered}/3 lab tracks have enough data.</p>
+    <p><strong>Delay trials:</strong> ${delayReady ? 'Ready' : 'Needs more samples'} (${state.delayResults.length} recorded).</p>
+    <p><strong>Loader ratings:</strong> ${loaderReady ? 'Ready' : 'Incomplete'} (spinner ${state.loadRatings.spinner.length}, skeleton ${state.loadRatings.skeleton.length}).</p>
+    <p><strong>Commit strategy:</strong> ${optimisticReady ? 'Ready' : 'Incomplete'} (standard ${state.standardRuns}, optimistic ${state.optimisticRuns}).</p>
+    <p><strong>Next gap:</strong> ${nextGap}</p>
+  `;
 }
 
 function recommendedFeedback(avgDelay) {
@@ -959,6 +985,7 @@ renderDelayResults();
 renderLoadingSummary();
 renderOutcomeStats();
 renderInsights();
+renderEvidenceCoverage();
 syncLikeCounters();
 renderEventLog();
 addLog('Latency lab initialized from local session storage.', 'success');
