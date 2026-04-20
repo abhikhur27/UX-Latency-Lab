@@ -42,6 +42,7 @@ const evidenceCoverage = document.getElementById('evidence-coverage');
 const launchChecklist = document.getElementById('launch-checklist');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
+const copySessionLinkButton = document.getElementById('copy-session-link');
 const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
 const resetSessionButton = document.getElementById('reset-session');
@@ -105,6 +106,35 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  syncUrlState();
+}
+
+function syncUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  params.set('profile', networkProfile.value);
+  params.set('delay', delayInput.value);
+  params.set('failRate', failRate.value);
+  const nextUrl = `${window.location.pathname}?${params.toString()}`;
+  window.history.replaceState({}, '', nextUrl);
+}
+
+function hydrateFromUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  const requestedProfile = params.get('profile');
+  if (requestedProfile && profileMap[requestedProfile]) {
+    networkProfile.value = requestedProfile;
+  }
+
+  const requestedDelay = Number.parseInt(params.get('delay') || '', 10);
+  if (Number.isInteger(requestedDelay) && requestedDelay >= 0 && requestedDelay <= 3000) {
+    delayInput.value = String(requestedDelay);
+  }
+
+  const requestedFailRate = Number.parseInt(params.get('failRate') || '', 10);
+  if (Number.isInteger(requestedFailRate) && requestedFailRate >= 0 && requestedFailRate <= 80) {
+    failRate.value = String(requestedFailRate);
+    failRateLabel.textContent = String(requestedFailRate);
+  }
 }
 
 function average(values) {
@@ -943,6 +973,7 @@ function importSessionData(file) {
 
 failRate.addEventListener('input', () => {
   failRateLabel.textContent = failRate.value;
+  syncUrlState();
 });
 networkProfile.addEventListener('change', () => {
   const profile = profileMap[networkProfile.value];
@@ -951,7 +982,9 @@ networkProfile.addEventListener('change', () => {
   failRate.value = String(profile.failRate);
   failRateLabel.textContent = String(profile.failRate);
   delayStatus.textContent = profile.label;
+  syncUrlState();
 });
+delayInput.addEventListener('input', syncUrlState);
 
 delayRun.addEventListener('click', runDelayTrial);
 delayClear.addEventListener('click', clearDelayTrials);
@@ -970,6 +1003,15 @@ copyReportButton.addEventListener('click', async () => {
     addLog('Clipboard copy failed while building the session report.', 'fail');
   }
 });
+copySessionLinkButton.addEventListener('click', async () => {
+  syncUrlState();
+  try {
+    await navigator.clipboard.writeText(window.location.href);
+    addLog('Copied a shareable session link with the active profile and knobs.', 'success');
+  } catch (error) {
+    addLog('Clipboard copy failed while building the session link.', 'fail');
+  }
+});
 importSessionButton.addEventListener('click', () => importFileInput.click());
 importFileInput.addEventListener('change', () => {
   const file = importFileInput.files?.[0];
@@ -980,6 +1022,7 @@ importFileInput.addEventListener('change', () => {
 resetSessionButton.addEventListener('click', resetSession);
 sweepFailureRatesButton.addEventListener('click', sweepFailureRates);
 
+hydrateFromUrlState();
 renderRatingButtons();
 renderDelayResults();
 renderLoadingSummary();
