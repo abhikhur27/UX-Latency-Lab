@@ -56,6 +56,13 @@ python -m http.server 8000
 
 Open `http://localhost:8000`.
 
+## Portfolio Demo Path
+
+1. Run `Benchmark Profiles` to create latency evidence.
+2. Test skeleton loading and record a perceived-speed rating.
+3. Sweep failure rates to find the optimistic-UI boundary.
+4. Copy the session report as a product-facing recommendation.
+
 ## GitHub Pages Compatibility
 
 - Fully static.
