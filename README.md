@@ -30,6 +30,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Latency posture board turns the full session into a compact operating read on tail risk, loader posture, and rollback pressure.
 - Failure-rate sweep now ends with a policy-boundary summary so optimistic UI guidance reads like a decision memo instead of a raw table.
 - Evidence coverage board shows which of the three lab tracks have enough data and what measurement gap should be closed next.
+- Experiment debt board calls out unbalanced trials, missing baselines, and weak sample sizes before a session report is trusted.
 - Session links now preserve the active profile, delay knob, and failure-rate setting for repeatable walkthroughs.
 
 ## Technical Design

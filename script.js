@@ -39,6 +39,7 @@ const releaseBoard = document.getElementById('release-board');
 const budgetCoach = document.getElementById('budget-coach');
 const latencyPosture = document.getElementById('latency-posture');
 const evidenceCoverage = document.getElementById('evidence-coverage');
+const experimentDebt = document.getElementById('experiment-debt');
 const launchChecklist = document.getElementById('launch-checklist');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
@@ -540,6 +541,7 @@ function renderLaunchChecklist() {
     .map((check) => `<p><strong>${check.label} (${check.status}):</strong> ${check.detail}</p>`)
     .join('');
   renderEvidenceCoverage();
+  renderExperimentDebt();
 }
 
 function renderEvidenceCoverage() {
@@ -564,6 +566,28 @@ function renderEvidenceCoverage() {
     <p><strong>Commit strategy:</strong> ${optimisticReady ? 'Ready' : 'Incomplete'} (standard ${state.standardRuns}, optimistic ${state.optimisticRuns}).</p>
     <p><strong>Next gap:</strong> ${nextGap}</p>
   `;
+}
+
+function renderExperimentDebt() {
+  if (!experimentDebt) return;
+
+  const debts = [];
+  if (state.delayResults.length > 0 && state.delayResults.length < 5) {
+    debts.push(`add ${5 - state.delayResults.length} more delay trial${5 - state.delayResults.length === 1 ? '' : 's'} before trusting tail latency`);
+  }
+  if (state.loadRatings.spinner.length !== state.loadRatings.skeleton.length) {
+    debts.push('balance spinner and skeleton ratings so the loader comparison is fair');
+  }
+  if (state.optimisticRuns > 0 && state.standardRuns === 0) {
+    debts.push('run the standard flow once to preserve a baseline');
+  }
+  if (state.standardRuns > 0 && state.optimisticRuns === 0) {
+    debts.push('run the optimistic flow once to measure rollback pressure');
+  }
+
+  experimentDebt.innerHTML = debts.length
+    ? `<p><strong>Experiment debt:</strong> ${debts.join('; ')}.</p>`
+    : '<p><strong>Experiment debt:</strong> no obvious measurement gaps in the current session.</p>';
 }
 
 function recommendedFeedback(avgDelay) {
