@@ -37,6 +37,7 @@ const optimisticMetrics = document.getElementById('optimistic-metrics');
 const optimisticRecommendation = document.getElementById('optimistic-recommendation');
 const releaseBoard = document.getElementById('release-board');
 const budgetCoach = document.getElementById('budget-coach');
+const interventionLadder = document.getElementById('intervention-ladder');
 const latencyPosture = document.getElementById('latency-posture');
 const evidenceCoverage = document.getElementById('evidence-coverage');
 const experimentDebt = document.getElementById('experiment-debt');
@@ -542,6 +543,43 @@ function renderLaunchChecklist() {
     .join('');
   renderEvidenceCoverage();
   renderExperimentDebt();
+  renderInterventionLadder();
+}
+
+function renderInterventionLadder() {
+  if (!interventionLadder) return;
+
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+
+  const loaderPreference =
+    spinnerAvg === null && skeletonAvg === null
+      ? 'Collect both loader ratings before locking a default.'
+      : skeletonAvg > spinnerAvg
+        ? 'Prefer skeleton states once the wait becomes visible.'
+        : 'A simple spinner is still acceptable for this session profile.';
+
+  const baseTier =
+    avgDelay === null
+      ? 'Need delay trials before choosing a feedback tier.'
+      : avgDelay <= 120
+        ? 'Tier 1: instant acknowledgement only.'
+        : avgDelay <= 260
+          ? 'Tier 2: acknowledge immediately, then show progress if the wait continues.'
+          : 'Tier 3: commit to visible loading feedback from the start.';
+
+  const optimisticTier =
+    rollbackRate === null
+      ? 'Need both standard and optimistic runs before deciding on optimistic commits.'
+      : rollbackRate <= 15
+        ? 'Optimistic commits are acceptable if undo language stays visible.'
+        : rollbackRate <= 30
+          ? 'Use optimistic UI only for low-cost actions with obvious rollback messaging.'
+          : 'Avoid optimistic commits here; rollback pressure is too visible.';
+
+  interventionLadder.innerHTML = `<p><strong>Intervention ladder</strong></p><p>${baseTier}</p><p>${loaderPreference}</p><p>${optimisticTier}</p>`;
 }
 
 function renderEvidenceCoverage() {
@@ -959,6 +997,7 @@ function buildSessionReport() {
     '',
     '## Current Verdict',
     `- ${optimisticRecommendation.textContent}`,
+    `- ${(interventionLadder?.textContent || '').replace(/\s+/g, ' ').trim()}`,
   ].join('\n');
 }
 

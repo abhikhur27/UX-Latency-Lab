@@ -28,6 +28,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Policy scorecard turns the current session into concrete guidance for action feedback, loader choice, and commit strategy.
 - Release-readiness board condenses all three experiments into a single ship/no-ship style brief.
 - Latency posture board turns the full session into a compact operating read on tail risk, loader posture, and rollback pressure.
+- Intervention ladder turns the current evidence into a concrete acknowledge-vs-loader-vs-optimistic policy recommendation.
 - Failure-rate sweep now ends with a policy-boundary summary so optimistic UI guidance reads like a decision memo instead of a raw table.
 - Evidence coverage board shows which of the three lab tracks have enough data and what measurement gap should be closed next.
 - Experiment debt board calls out unbalanced trials, missing baselines, and weak sample sizes before a session report is trusted.
@@ -63,6 +64,7 @@ Open `http://localhost:8000`.
 2. Test skeleton loading and record a perceived-speed rating.
 3. Sweep failure rates to find the optimistic-UI boundary.
 4. Copy the session report as a product-facing recommendation.
+5. Read the intervention ladder so the report ends with a specific feedback policy, not just raw metrics.
 
 ## GitHub Pages Compatibility
 
