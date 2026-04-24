@@ -5,6 +5,7 @@ const benchmarkProfilesButton = document.getElementById('benchmark-profiles');
 const delayStatus = document.getElementById('delay-status');
 const delayChart = document.getElementById('delay-chart');
 const delaySummary = document.getElementById('delay-summary');
+const delayVolatility = document.getElementById('delay-volatility');
 const delayP50 = document.getElementById('delay-p50');
 const delayP75 = document.getElementById('delay-p75');
 const delayP95 = document.getElementById('delay-p95');
@@ -151,6 +152,35 @@ function percentile(values, pct) {
   return sorted[index];
 }
 
+function standardDeviation(values) {
+  if (values.length < 2) return 0;
+  const mean = average(values);
+  const variance = values.reduce((sum, value) => sum + ((value - mean) ** 2), 0) / values.length;
+  return Math.sqrt(variance);
+}
+
+function renderDelayVolatility() {
+  if (!delayVolatility) return;
+  if (!state.delayResults.length) {
+    delayVolatility.innerHTML = '<p>Run a few trials to see whether latency is merely slow or actually volatile.</p>';
+    return;
+  }
+
+  const avg = average(state.delayResults);
+  const p95 = percentile(state.delayResults, 95);
+  const p50 = percentile(state.delayResults, 50);
+  const stdev = standardDeviation(state.delayResults);
+  const spread = Math.max(...state.delayResults) - Math.min(...state.delayResults);
+  const volatility =
+    stdev >= 140 || p95 - p50 >= 180 ? 'High volatility' : stdev >= 70 || p95 - p50 >= 90 ? 'Moderate volatility' : 'Low volatility';
+
+  delayVolatility.innerHTML = [
+    `<p><strong>${volatility}:</strong> standard deviation ${stdev.toFixed(1)} ms across ${state.delayResults.length} trial${state.delayResults.length === 1 ? '' : 's'}.</p>`,
+    `<p><strong>Tail gap:</strong> P95 sits ${(p95 - p50).toFixed(1)} ms above the median, so the slow edge is ${p95 - p50 >= 150 ? 'material enough to justify stronger pending feedback.' : 'present but still fairly contained.'}</p>`,
+    `<p><strong>Range:</strong> fastest-to-slowest spread is ${spread.toFixed(1)} ms around a ${avg.toFixed(1)} ms average.</p>`,
+  ].join('');
+}
+
 function syncLikeCounters() {
   standardLikesEl.textContent = String(state.standardLikes);
   optimisticLikesEl.textContent = String(state.optimisticLikes);
@@ -187,6 +217,7 @@ function renderDelayResults() {
     delayP75.textContent = '-';
     delayP95.textContent = '-';
     delaySlowest.textContent = '-';
+    renderDelayVolatility();
     renderSessionMemo();
     return;
   }
@@ -215,6 +246,7 @@ function renderDelayResults() {
   delayP75.textContent = `${p75.toFixed(1)} ms`;
   delayP95.textContent = `${p95.toFixed(1)} ms`;
   delaySlowest.textContent = `${slowest.toFixed(1)} ms`;
+  renderDelayVolatility();
   renderSessionMemo();
 }
 
