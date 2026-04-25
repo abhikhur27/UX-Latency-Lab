@@ -42,6 +42,7 @@ const interventionLadder = document.getElementById('intervention-ladder');
 const latencyPosture = document.getElementById('latency-posture');
 const evidenceCoverage = document.getElementById('evidence-coverage');
 const experimentDebt = document.getElementById('experiment-debt');
+const confidenceBoard = document.getElementById('confidence-board');
 const launchChecklist = document.getElementById('launch-checklist');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
@@ -575,6 +576,7 @@ function renderLaunchChecklist() {
     .join('');
   renderEvidenceCoverage();
   renderExperimentDebt();
+  renderConfidenceBoard();
   renderInterventionLadder();
 }
 
@@ -658,6 +660,46 @@ function renderExperimentDebt() {
   experimentDebt.innerHTML = debts.length
     ? `<p><strong>Experiment debt:</strong> ${debts.join('; ')}.</p>`
     : '<p><strong>Experiment debt:</strong> no obvious measurement gaps in the current session.</p>';
+}
+
+function renderConfidenceBoard() {
+  if (!confidenceBoard) return;
+
+  const delaySamples = state.delayResults.length;
+  const loaderSamples = state.loadRatings.spinner.length + state.loadRatings.skeleton.length;
+  const commitSamples = state.standardRuns + state.optimisticRuns;
+  const avgDelay = delaySamples ? average(state.delayResults) : null;
+  const p95Delay = delaySamples ? percentile(state.delayResults, 95) : null;
+  const delayVariance = avgDelay === null || p95Delay === null ? 0 : Math.max(0, p95Delay - avgDelay);
+  const balancedLoaders = Math.abs(state.loadRatings.spinner.length - state.loadRatings.skeleton.length) <= 1;
+
+  const evidenceScore = [
+    delaySamples >= 5,
+    loaderSamples >= 4 && balancedLoaders,
+    commitSamples >= 6 && state.standardRuns > 0 && state.optimisticRuns > 0,
+  ].filter(Boolean).length;
+
+  const confidence =
+    evidenceScore === 3 && delayVariance <= 90
+      ? 'High'
+      : evidenceScore >= 2
+        ? 'Medium'
+        : 'Low';
+
+  const cue =
+    confidence === 'High'
+      ? 'The current recommendation set is sturdy enough to use in a product-facing walkthrough.'
+      : confidence === 'Medium'
+        ? 'The session is directionally useful, but one more balanced pass would make the guidance easier to defend.'
+        : 'Treat the current recommendations as exploratory until the missing tracks are filled in.';
+
+  confidenceBoard.innerHTML = `
+    <p><strong>Evidence confidence: ${confidence}</strong></p>
+    <p><strong>Delay samples:</strong> ${delaySamples} (${avgDelay === null ? 'no variance read yet' : `P95 spread ${delayVariance.toFixed(0)} ms`}).</p>
+    <p><strong>Loader balance:</strong> spinner ${state.loadRatings.spinner.length}, skeleton ${state.loadRatings.skeleton.length}${balancedLoaders ? '' : ' - rebalance the rating counts'}.</p>
+    <p><strong>Commit coverage:</strong> standard ${state.standardRuns}, optimistic ${state.optimisticRuns}.</p>
+    <p><strong>Cue:</strong> ${cue}</p>
+  `;
 }
 
 function recommendedFeedback(avgDelay) {

@@ -32,6 +32,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Failure-rate sweep now ends with a policy-boundary summary so optimistic UI guidance reads like a decision memo instead of a raw table.
 - Evidence coverage board shows which of the three lab tracks have enough data and what measurement gap should be closed next.
 - Experiment debt board calls out unbalanced trials, missing baselines, and weak sample sizes before a session report is trusted.
+- Evidence confidence board grades whether the current session is robust enough for product-facing conclusions.
 - Session links now preserve the active profile, delay knob, and failure-rate setting for repeatable walkthroughs.
 
 ## Technical Design
