@@ -43,6 +43,7 @@ const latencyPosture = document.getElementById('latency-posture');
 const evidenceCoverage = document.getElementById('evidence-coverage');
 const experimentDebt = document.getElementById('experiment-debt');
 const confidenceBoard = document.getElementById('confidence-board');
+const rollbackToleranceBoard = document.getElementById('rollback-tolerance-board');
 const launchChecklist = document.getElementById('launch-checklist');
 const nextExperimentBoard = document.getElementById('next-experiment-board');
 const exportSessionButton = document.getElementById('export-session');
@@ -578,6 +579,7 @@ function renderLaunchChecklist() {
   renderEvidenceCoverage();
   renderExperimentDebt();
   renderConfidenceBoard();
+  renderRollbackToleranceBoard();
   renderInterventionLadder();
   renderNextExperimentBoard();
 }
@@ -701,6 +703,31 @@ function renderConfidenceBoard() {
     <p><strong>Loader balance:</strong> spinner ${state.loadRatings.spinner.length}, skeleton ${state.loadRatings.skeleton.length}${balancedLoaders ? '' : ' - rebalance the rating counts'}.</p>
     <p><strong>Commit coverage:</strong> standard ${state.standardRuns}, optimistic ${state.optimisticRuns}.</p>
     <p><strong>Cue:</strong> ${cue}</p>
+  `;
+}
+
+function renderRollbackToleranceBoard() {
+  if (!rollbackToleranceBoard) return;
+
+  if (!state.optimisticRuns) {
+    rollbackToleranceBoard.innerHTML = '<p><strong>Rollback tolerance:</strong> run optimistic saves to see whether the current failure profile is still socially survivable.</p>';
+    return;
+  }
+
+  const rollbackRate = (state.optimisticRollbacks / state.optimisticRuns) * 100;
+  const label =
+    rollbackRate <= 10 ? 'Comfortable' : rollbackRate <= 25 ? 'Guarded' : 'Fragile';
+  const cue =
+    rollbackRate <= 10
+      ? 'Rollback pressure is low enough that optimistic UI can stay default if the confirmation language is clear.'
+      : rollbackRate <= 25
+        ? 'Optimistic UI still works, but only with explicit undo and visible pending state.'
+        : 'Rollback pressure is high enough that standard confirmation should retake the default for risky actions.';
+
+  rollbackToleranceBoard.innerHTML = `
+    <p><strong>Rollback tolerance: ${label}</strong></p>
+    <p><strong>Observed rollback rate:</strong> ${rollbackRate.toFixed(1)}% across ${state.optimisticRuns} optimistic run${state.optimisticRuns === 1 ? '' : 's'}.</p>
+    <p><strong>Policy cue:</strong> ${cue}</p>
   `;
 }
 
