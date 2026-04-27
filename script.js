@@ -44,6 +44,7 @@ const evidenceCoverage = document.getElementById('evidence-coverage');
 const experimentDebt = document.getElementById('experiment-debt');
 const confidenceBoard = document.getElementById('confidence-board');
 const launchChecklist = document.getElementById('launch-checklist');
+const nextExperimentBoard = document.getElementById('next-experiment-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
 const copySessionLinkButton = document.getElementById('copy-session-link');
@@ -578,6 +579,7 @@ function renderLaunchChecklist() {
   renderExperimentDebt();
   renderConfidenceBoard();
   renderInterventionLadder();
+  renderNextExperimentBoard();
 }
 
 function renderInterventionLadder() {
@@ -699,6 +701,29 @@ function renderConfidenceBoard() {
     <p><strong>Loader balance:</strong> spinner ${state.loadRatings.spinner.length}, skeleton ${state.loadRatings.skeleton.length}${balancedLoaders ? '' : ' - rebalance the rating counts'}.</p>
     <p><strong>Commit coverage:</strong> standard ${state.standardRuns}, optimistic ${state.optimisticRuns}.</p>
     <p><strong>Cue:</strong> ${cue}</p>
+  `;
+}
+
+function renderNextExperimentBoard() {
+  if (!nextExperimentBoard) return;
+
+  const missingDelay = state.delayResults.length < 5;
+  const missingLoader = state.loadRatings.spinner.length === 0 || state.loadRatings.skeleton.length === 0;
+  const missingCommit = state.standardRuns < 3 || state.optimisticRuns < 3;
+  let nextStep = 'Repeat the harshest profile once more and then export the session report.';
+
+  if (missingDelay) {
+    nextStep = `Run ${5 - state.delayResults.length} more delay trial${5 - state.delayResults.length === 1 ? '' : 's'} to stabilize the latency band read.`;
+  } else if (missingLoader) {
+    nextStep = 'Collect at least one spinner and one skeleton rating so the loader recommendation is earned, not guessed.';
+  } else if (missingCommit) {
+    nextStep = 'Balance optimistic and standard save runs so rollback guidance is backed by both sides of the tradeoff.';
+  }
+
+  nextExperimentBoard.innerHTML = `
+    <p><strong>Next experiment</strong></p>
+    <p>${nextStep}</p>
+    <p><strong>Why this first:</strong> It closes the biggest remaining hole in the session evidence chain.</p>
   `;
 }
 
