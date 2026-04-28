@@ -78,4 +78,4 @@ Open `http://localhost:8000`.
 
 - Add charts for percentile latency distributions.
 - Add offline-first scenarios and cache-hit simulations.
-- Export experiment session data as JSON.
+- Add side-by-side historical session comparisons for repeated product reviews.
