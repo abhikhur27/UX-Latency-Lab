@@ -6,6 +6,7 @@ const delayStatus = document.getElementById('delay-status');
 const delayChart = document.getElementById('delay-chart');
 const delaySummary = document.getElementById('delay-summary');
 const delayVolatility = document.getElementById('delay-volatility');
+const latencyBudgetBoard = document.getElementById('latency-budget-board');
 const delayP50 = document.getElementById('delay-p50');
 const delayP75 = document.getElementById('delay-p75');
 const delayP95 = document.getElementById('delay-p95');
@@ -184,6 +185,34 @@ function renderDelayVolatility() {
   ].join('');
 }
 
+function renderLatencyBudgetBoard() {
+  if (!latencyBudgetBoard) return;
+  if (!state.delayResults.length) {
+    latencyBudgetBoard.innerHTML = '<p>Run trials to see which user-facing latency budgets the current profile is breaking.</p>';
+    return;
+  }
+
+  const p50 = percentile(state.delayResults, 50);
+  const p95 = percentile(state.delayResults, 95);
+  const budgets = [
+    { label: 'Instant feedback', threshold: 100 },
+    { label: 'Feels responsive', threshold: 250 },
+    { label: 'Needs explicit loading', threshold: 500 },
+  ];
+  const breaches = budgets.filter((budget) => p95 > budget.threshold);
+  const posture =
+    p95 <= 100 ? 'Instant-tier' :
+    p95 <= 250 ? 'Responsive-tier' :
+    p95 <= 500 ? 'Loader-tier' :
+    'Delay-risk tier';
+
+  latencyBudgetBoard.innerHTML = [
+    `<p><strong>${posture}:</strong> median ${p50.toFixed(1)} ms, P95 ${p95.toFixed(1)} ms.</p>`,
+    `<p><strong>Budget breaches:</strong> ${breaches.length ? breaches.map((budget) => `${budget.label} (> ${budget.threshold} ms)`).join(', ') : 'none'}.</p>`,
+    `<p><strong>Product cue:</strong> ${p95 > 500 ? 'Treat this flow as explicitly latent and design around acknowledgement plus progress.' : p95 > 250 ? 'Keep the interaction lightweight, but show a stronger loader before users wonder if the action stuck.' : 'The profile stays inside common response budgets, so micro-feedback can stay minimal.'}</p>`,
+  ].join('');
+}
+
 function syncLikeCounters() {
   standardLikesEl.textContent = String(state.standardLikes);
   optimisticLikesEl.textContent = String(state.optimisticLikes);
@@ -221,6 +250,7 @@ function renderDelayResults() {
     delayP95.textContent = '-';
     delaySlowest.textContent = '-';
     renderDelayVolatility();
+    renderLatencyBudgetBoard();
     renderSessionMemo();
     return;
   }
@@ -250,6 +280,7 @@ function renderDelayResults() {
   delayP95.textContent = `${p95.toFixed(1)} ms`;
   delaySlowest.textContent = `${slowest.toFixed(1)} ms`;
   renderDelayVolatility();
+  renderLatencyBudgetBoard();
   renderSessionMemo();
 }
 

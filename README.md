@@ -12,6 +12,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - View measured timings and average.
 - Session percentile cut points for median, P75, P95, and slowest-trial analysis.
 - Profile benchmark summary calls out the fastest profile, harshest latency band, and the feedback-design takeaway.
+- Latency budget board maps the current trial distribution to instant, responsive, and loader-worthy product thresholds.
 
 2. **Loading feedback perception**
    - Compare spinner vs skeleton loading states.
