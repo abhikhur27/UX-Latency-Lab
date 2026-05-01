@@ -1160,6 +1160,10 @@ function importSessionData(file) {
   reader.readAsText(file);
 }
 
+function isEditableTarget(target) {
+  return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(target.tagName));
+}
+
 failRate.addEventListener('input', () => {
   failRateLabel.textContent = failRate.value;
   syncUrlState();
@@ -1210,6 +1214,36 @@ importFileInput.addEventListener('change', () => {
 });
 resetSessionButton.addEventListener('click', resetSession);
 sweepFailureRatesButton.addEventListener('click', sweepFailureRates);
+
+document.addEventListener('keydown', (event) => {
+  if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || isEditableTarget(event.target)) {
+    return;
+  }
+
+  const key = event.key.toLowerCase();
+  if (key === 'd') {
+    event.preventDefault();
+    runDelayTrial();
+  } else if (key === 'b') {
+    event.preventDefault();
+    benchmarkProfiles();
+  } else if (key === 's') {
+    event.preventDefault();
+    runLoadingScenario('spinner');
+  } else if (key === 'k') {
+    event.preventDefault();
+    runLoadingScenario('skeleton');
+  } else if (key === 'o') {
+    event.preventDefault();
+    runOptimistic();
+  } else if (key === 't') {
+    event.preventDefault();
+    runStandard();
+  } else if (key === 'f') {
+    event.preventDefault();
+    sweepFailureRates();
+  }
+});
 
 hydrateFromUrlState();
 renderRatingButtons();
