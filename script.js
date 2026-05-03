@@ -47,6 +47,7 @@ const confidenceBoard = document.getElementById('confidence-board');
 const rollbackToleranceBoard = document.getElementById('rollback-tolerance-board');
 const launchChecklist = document.getElementById('launch-checklist');
 const nextExperimentBoard = document.getElementById('next-experiment-board');
+const interactionContractBoard = document.getElementById('interaction-contract-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
 const copySessionLinkButton = document.getElementById('copy-session-link');
@@ -613,6 +614,7 @@ function renderLaunchChecklist() {
   renderRollbackToleranceBoard();
   renderInterventionLadder();
   renderNextExperimentBoard();
+  renderInteractionContractBoard();
 }
 
 function renderInterventionLadder() {
@@ -782,6 +784,47 @@ function renderNextExperimentBoard() {
     <p><strong>Next experiment</strong></p>
     <p>${nextStep}</p>
     <p><strong>Why this first:</strong> It closes the biggest remaining hole in the session evidence chain.</p>
+  `;
+}
+
+function renderInteractionContractBoard() {
+  if (!interactionContractBoard) return;
+
+  const p95Delay = state.delayResults.length ? percentile(state.delayResults, 95) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+
+  const acknowledgeRule =
+    p95Delay === null
+      ? 'Run a few delay trials to learn when acknowledgment can stay invisible.'
+      : p95Delay <= 120
+        ? 'Silent acknowledgment is acceptable; the tail is still effectively instant.'
+        : p95Delay <= 300
+          ? 'Use a subtle pending state before the user starts doubting whether the action landed.'
+          : 'Show explicit pending acknowledgment immediately; the tail is too visible to hide.';
+
+  const loaderRule =
+    skeletonAvg === null || spinnerAvg === null
+      ? 'Rate both loader styles before locking a loader contract.'
+      : skeletonAvg >= spinnerAvg
+        ? `Prefer skeletons for longer waits; they are scoring ${(skeletonAvg - spinnerAvg).toFixed(1)} points better than spinners on average.`
+        : `Spinner is currently winning by ${(spinnerAvg - skeletonAvg).toFixed(1)} points, so placeholder complexity may not be earning its keep yet.`;
+
+  const optimisticRule =
+    rollbackRate === null
+      ? 'Run optimistic and standard saves before declaring instant commits safe.'
+      : rollbackRate <= 15
+        ? 'Optimistic writes are socially survivable under the current failure profile.'
+        : rollbackRate <= 30
+          ? 'Optimistic writes are viable only with explicit rollback copy and low-stakes actions.'
+          : 'Do not ship silent optimistic writes here; rollback pressure is too high.';
+
+  interactionContractBoard.innerHTML = `
+    <p><strong>Interaction contract</strong></p>
+    <p><strong>Acknowledge:</strong> ${acknowledgeRule}</p>
+    <p><strong>Loader:</strong> ${loaderRule}</p>
+    <p><strong>Commit policy:</strong> ${optimisticRule}</p>
   `;
 }
 
