@@ -46,6 +46,7 @@ const experimentDebt = document.getElementById('experiment-debt');
 const confidenceBoard = document.getElementById('confidence-board');
 const rollbackToleranceBoard = document.getElementById('rollback-tolerance-board');
 const launchChecklist = document.getElementById('launch-checklist');
+const shipGateBoard = document.getElementById('ship-gate-board');
 const nextExperimentBoard = document.getElementById('next-experiment-board');
 const interactionContractBoard = document.getElementById('interaction-contract-board');
 const exportSessionButton = document.getElementById('export-session');
@@ -613,8 +614,32 @@ function renderLaunchChecklist() {
   renderConfidenceBoard();
   renderRollbackToleranceBoard();
   renderInterventionLadder();
+  renderShipGateBoard();
   renderNextExperimentBoard();
   renderInteractionContractBoard();
+}
+
+function renderShipGateBoard() {
+  if (!shipGateBoard) return;
+
+  const hasDelayEvidence = state.delayResults.length >= 3;
+  const hasLoadingEvidence = state.loadRatings.spinner.length + state.loadRatings.skeleton.length >= 2;
+  const hasRollbackEvidence = state.standardRuns + state.optimisticRuns >= 4;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : 0;
+
+  if (!hasDelayEvidence || !hasLoadingEvidence || !hasRollbackEvidence) {
+    shipGateBoard.innerHTML = '<p><strong>Ship gate:</strong> not ready. Close the biggest evidence gap before treating this session as product policy.</p>';
+    return;
+  }
+
+  const p95 = percentile(state.delayResults, 95);
+  if (p95 <= 250 && rollbackRate <= 25) {
+    shipGateBoard.innerHTML = '<p><strong>Ship gate:</strong> ready. Tail latency stays responsive and optimistic rollback pressure is still controlled.</p>';
+  } else if (p95 <= 500 && rollbackRate <= 40) {
+    shipGateBoard.innerHTML = '<p><strong>Ship gate:</strong> conditional. The flow is only defensible with stronger acknowledgement and a clearer rollback story.</p>';
+  } else {
+    shipGateBoard.innerHTML = '<p><strong>Ship gate:</strong> hold. Tail latency or rollback pain is still too high for a confident launch recommendation.</p>';
+  }
 }
 
 function renderInterventionLadder() {
