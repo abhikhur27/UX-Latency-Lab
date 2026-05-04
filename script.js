@@ -48,6 +48,7 @@ const rollbackToleranceBoard = document.getElementById('rollback-tolerance-board
 const launchChecklist = document.getElementById('launch-checklist');
 const shipGateBoard = document.getElementById('ship-gate-board');
 const nextExperimentBoard = document.getElementById('next-experiment-board');
+const decisionLedgerBoard = document.getElementById('decision-ledger-board');
 const interactionContractBoard = document.getElementById('interaction-contract-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
@@ -616,6 +617,7 @@ function renderLaunchChecklist() {
   renderInterventionLadder();
   renderShipGateBoard();
   renderNextExperimentBoard();
+  renderDecisionLedgerBoard();
   renderInteractionContractBoard();
 }
 
@@ -810,6 +812,75 @@ function renderNextExperimentBoard() {
     <p>${nextStep}</p>
     <p><strong>Why this first:</strong> It closes the biggest remaining hole in the session evidence chain.</p>
   `;
+}
+
+function renderDecisionLedgerBoard() {
+  if (!decisionLedgerBoard) return;
+
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+
+  const rows = [
+    {
+      label: 'Acknowledge timing',
+      state:
+        avgDelay === null
+          ? 'Unproven'
+          : avgDelay <= 120
+            ? 'Proven'
+            : avgDelay <= 260
+              ? 'Conditional'
+              : 'Proven',
+      detail:
+        avgDelay === null
+          ? 'Need delay trials before locking an acknowledgement tier.'
+          : avgDelay <= 120
+            ? 'Silent or near-silent acknowledgement is defensible.'
+            : avgDelay <= 260
+              ? 'A subtle pending state is warranted if the wait keeps stretching.'
+              : 'Visible acknowledgement should start immediately.'
+    },
+    {
+      label: 'Loader default',
+      state:
+        spinnerAvg === null || skeletonAvg === null
+          ? 'Unproven'
+          : skeletonAvg === spinnerAvg
+            ? 'Conditional'
+            : 'Proven',
+      detail:
+        spinnerAvg === null || skeletonAvg === null
+          ? 'Need both spinner and skeleton ratings before calling a winner.'
+          : skeletonAvg >= spinnerAvg
+            ? `Skeletons currently lead by ${(skeletonAvg - spinnerAvg).toFixed(1)} points on perceived speed.`
+            : `Spinners currently lead by ${(spinnerAvg - skeletonAvg).toFixed(1)} points on perceived speed.`
+    },
+    {
+      label: 'Optimistic commits',
+      state:
+        rollbackRate === null
+          ? 'Unproven'
+          : rollbackRate <= 15
+            ? 'Proven'
+            : rollbackRate <= 30
+              ? 'Conditional'
+              : 'Hold',
+      detail:
+        rollbackRate === null
+          ? 'Need optimistic runs before judging rollback survivability.'
+          : rollbackRate <= 15
+            ? 'Rollback pressure is low enough that optimistic UI can stay on the table.'
+            : rollbackRate <= 30
+              ? 'Only safe for low-cost actions with explicit undo language.'
+              : 'Rollback pressure is too visible for optimistic defaults.'
+    }
+  ];
+
+  decisionLedgerBoard.innerHTML = rows
+    .map((row) => `<p><strong>${row.label}:</strong> ${row.state}. ${row.detail}</p>`)
+    .join('');
 }
 
 function renderInteractionContractBoard() {
