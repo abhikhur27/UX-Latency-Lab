@@ -50,6 +50,7 @@ const shipGateBoard = document.getElementById('ship-gate-board');
 const nextExperimentBoard = document.getElementById('next-experiment-board');
 const decisionLedgerBoard = document.getElementById('decision-ledger-board');
 const interactionContractBoard = document.getElementById('interaction-contract-board');
+const trustBudgetBoard = document.getElementById('trust-budget-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
 const copySessionLinkButton = document.getElementById('copy-session-link');
@@ -619,6 +620,7 @@ function renderLaunchChecklist() {
   renderNextExperimentBoard();
   renderDecisionLedgerBoard();
   renderInteractionContractBoard();
+  renderTrustBudgetBoard();
 }
 
 function renderShipGateBoard() {
@@ -921,6 +923,35 @@ function renderInteractionContractBoard() {
     <p><strong>Acknowledge:</strong> ${acknowledgeRule}</p>
     <p><strong>Loader:</strong> ${loaderRule}</p>
     <p><strong>Commit policy:</strong> ${optimisticRule}</p>
+  `;
+}
+
+function renderTrustBudgetBoard() {
+  if (!trustBudgetBoard) return;
+
+  const p95Delay = state.delayResults.length ? percentile(state.delayResults, 95) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+  const loaderGap =
+    state.loadRatings.spinner.length && state.loadRatings.skeleton.length
+      ? Math.abs(average(state.loadRatings.spinner) - average(state.loadRatings.skeleton))
+      : null;
+
+  if (p95Delay === null && rollbackRate === null && loaderGap === null) {
+    trustBudgetBoard.innerHTML = '<p><strong>Trust budget:</strong> no evidence yet. Run the three lab tracks before claiming the interaction is emotionally cheap.</p>';
+    return;
+  }
+
+  const trustRisk =
+    (p95Delay !== null && p95Delay > 450 ? 2 : p95Delay !== null && p95Delay > 250 ? 1 : 0) +
+    (rollbackRate !== null && rollbackRate > 30 ? 2 : rollbackRate !== null && rollbackRate > 15 ? 1 : 0) +
+    (loaderGap !== null && loaderGap < 0.5 ? 1 : 0);
+  const label = trustRisk <= 1 ? 'Healthy' : trustRisk <= 3 ? 'Spend carefully' : 'Overdrawn';
+
+  trustBudgetBoard.innerHTML = `
+    <p><strong>Trust budget: ${label}</strong></p>
+    <p><strong>Tail delay:</strong> ${p95Delay === null ? 'needs data' : `${p95Delay.toFixed(0)} ms P95`}.</p>
+    <p><strong>Rollback pressure:</strong> ${rollbackRate === null ? 'needs data' : `${rollbackRate.toFixed(1)}% optimistic rollback rate`}.</p>
+    <p><strong>Loader clarity:</strong> ${loaderGap === null ? 'needs both ratings' : loaderGap < 0.5 ? 'users are barely distinguishing the loader treatments' : 'one loader strategy is clearly winning'}.</p>
   `;
 }
 
