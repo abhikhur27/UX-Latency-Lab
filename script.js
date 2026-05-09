@@ -52,6 +52,7 @@ const nextExperimentBoard = document.getElementById('next-experiment-board');
 const decisionLedgerBoard = document.getElementById('decision-ledger-board');
 const interactionContractBoard = document.getElementById('interaction-contract-board');
 const trustBudgetBoard = document.getElementById('trust-budget-board');
+const frictionBudgetBoard = document.getElementById('friction-budget-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
 const copySessionLinkButton = document.getElementById('copy-session-link');
@@ -623,6 +624,7 @@ function renderLaunchChecklist() {
   renderDecisionLedgerBoard();
   renderInteractionContractBoard();
   renderTrustBudgetBoard();
+  renderFrictionBudgetBoard();
 }
 
 function renderShipGateBoard() {
@@ -979,6 +981,37 @@ function renderTrustBudgetBoard() {
     <p><strong>Tail delay:</strong> ${p95Delay === null ? 'needs data' : `${p95Delay.toFixed(0)} ms P95`}.</p>
     <p><strong>Rollback pressure:</strong> ${rollbackRate === null ? 'needs data' : `${rollbackRate.toFixed(1)}% optimistic rollback rate`}.</p>
     <p><strong>Loader clarity:</strong> ${loaderGap === null ? 'needs both ratings' : loaderGap < 0.5 ? 'users are barely distinguishing the loader treatments' : 'one loader strategy is clearly winning'}.</p>
+  `;
+}
+
+function renderFrictionBudgetBoard() {
+  if (!frictionBudgetBoard) return;
+
+  if (!state.delayResults.length && !state.optimisticRuns) {
+    frictionBudgetBoard.innerHTML = '<p><strong>Friction budget:</strong> no evidence yet. Run latency and optimistic-save experiments before deciding whether the flow can feel lightweight.</p>';
+    return;
+  }
+
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+  const label =
+    avgDelay !== null && avgDelay <= 180 && (rollbackRate === null || rollbackRate <= 10)
+      ? 'Lightweight'
+      : avgDelay !== null && avgDelay <= 320 && (rollbackRate === null || rollbackRate <= 25)
+        ? 'Conditional'
+        : 'Heavy';
+
+  frictionBudgetBoard.innerHTML = `
+    <p><strong>Friction budget: ${label}</strong></p>
+    <p><strong>Latency load:</strong> ${avgDelay === null ? 'not measured yet' : `${avgDelay.toFixed(0)} ms average`}.</p>
+    <p><strong>Rollback load:</strong> ${rollbackRate === null ? 'not measured yet' : `${rollbackRate.toFixed(0)}% of optimistic runs reversed`}.</p>
+    <p><strong>Cue:</strong> ${
+      label === 'Lightweight'
+        ? 'This interaction can stay simple; extra ceremony would cost more than it saves.'
+        : label === 'Conditional'
+          ? 'Keep the flow lean, but spend friction carefully on acknowledgement or undo where the evidence is weakest.'
+          : 'The interaction is no longer emotionally cheap. Spend explicit UI friction on clarity, recovery, or staged commitment.'
+    }</p>
   `;
 }
 
