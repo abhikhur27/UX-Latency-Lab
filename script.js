@@ -45,6 +45,7 @@ const evidenceCoverage = document.getElementById('evidence-coverage');
 const experimentDebt = document.getElementById('experiment-debt');
 const confidenceBoard = document.getElementById('confidence-board');
 const rollbackToleranceBoard = document.getElementById('rollback-tolerance-board');
+const rollbackRehearsalBoard = document.getElementById('rollback-rehearsal-board');
 const launchChecklist = document.getElementById('launch-checklist');
 const shipGateBoard = document.getElementById('ship-gate-board');
 const nextExperimentBoard = document.getElementById('next-experiment-board');
@@ -615,6 +616,7 @@ function renderLaunchChecklist() {
   renderExperimentDebt();
   renderConfidenceBoard();
   renderRollbackToleranceBoard();
+  renderRollbackRehearsalBoard();
   renderInterventionLadder();
   renderShipGateBoard();
   renderNextExperimentBoard();
@@ -790,6 +792,31 @@ function renderRollbackToleranceBoard() {
     <p><strong>Rollback tolerance: ${label}</strong></p>
     <p><strong>Observed rollback rate:</strong> ${rollbackRate.toFixed(1)}% across ${state.optimisticRuns} optimistic run${state.optimisticRuns === 1 ? '' : 's'}.</p>
     <p><strong>Policy cue:</strong> ${cue}</p>
+  `;
+}
+
+function renderRollbackRehearsalBoard() {
+  if (!rollbackRehearsalBoard) return;
+
+  if (!state.optimisticRuns) {
+    rollbackRehearsalBoard.innerHTML = '<p>No optimistic runs yet. Trigger a few saves before treating rollback copy as a real rehearsal burden.</p>';
+    return;
+  }
+
+  const rollbackRate = (state.optimisticRollbacks / Math.max(1, state.optimisticRuns)) * 100;
+  const recentFailures = state.eventEntries.filter((entry) => entry.type === 'fail').length;
+  const label =
+    rollbackRate >= 35
+      ? 'High rehearsal burden'
+      : rollbackRate >= 18
+        ? 'Moderate rehearsal burden'
+        : 'Light rehearsal burden';
+
+  rollbackRehearsalBoard.innerHTML = `
+    <p><strong>Rollback rehearsal: ${label}</strong></p>
+    <p><strong>Observed rollback rate:</strong> ${rollbackRate.toFixed(0)}% across ${state.optimisticRuns} optimistic run${state.optimisticRuns === 1 ? '' : 's'}.</p>
+    <p><strong>Failure-copy pressure:</strong> ${recentFailures} recent fail log${recentFailures === 1 ? '' : 's'} mean the team is rehearsing apology and recovery, not just speed.</p>
+    <p><strong>Cue:</strong> ${rollbackRate >= 25 ? 'If this shipped, undo language and post-failure confirmation would be part of the core interaction contract.' : 'Rollback remains a contingency path, not the main user narrative.'}</p>
   `;
 }
 

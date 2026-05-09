@@ -34,6 +34,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Evidence coverage board shows which of the three lab tracks have enough data and what measurement gap should be closed next.
 - Experiment debt board calls out unbalanced trials, missing baselines, and weak sample sizes before a session report is trusted.
 - Evidence confidence board grades whether the current session is robust enough for product-facing conclusions.
+- Rollback rehearsal board reads optimistic failures as a product-copy burden, not just an error percentage.
 - Ship gate board compresses the current evidence into a simple ready / conditional / hold recommendation.
 - Next experiment board prioritizes the single best follow-up measurement so the session closes its biggest evidence gap first.
 - Session links now preserve the active profile, delay knob, and failure-rate setting for repeatable walkthroughs.
