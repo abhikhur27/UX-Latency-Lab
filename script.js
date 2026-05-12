@@ -53,6 +53,7 @@ const decisionLedgerBoard = document.getElementById('decision-ledger-board');
 const interactionContractBoard = document.getElementById('interaction-contract-board');
 const trustBudgetBoard = document.getElementById('trust-budget-board');
 const frictionBudgetBoard = document.getElementById('friction-budget-board');
+const personaBoard = document.getElementById('persona-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
 const copySessionLinkButton = document.getElementById('copy-session-link');
@@ -625,6 +626,7 @@ function renderLaunchChecklist() {
   renderInteractionContractBoard();
   renderTrustBudgetBoard();
   renderFrictionBudgetBoard();
+  renderPersonaBoard();
 }
 
 function renderShipGateBoard() {
@@ -1012,6 +1014,36 @@ function renderFrictionBudgetBoard() {
           ? 'Keep the flow lean, but spend friction carefully on acknowledgement or undo where the evidence is weakest.'
           : 'The interaction is no longer emotionally cheap. Spend explicit UI friction on clarity, recovery, or staged commitment.'
     }</p>
+  `;
+}
+
+function renderPersonaBoard() {
+  if (!personaBoard) return;
+
+  const p95 = percentile(state.delayResults, 95);
+  const skeletonAvg = average(state.loadRatings.skeleton);
+  const spinnerAvg = average(state.loadRatings.spinner);
+  const optimisticRollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : 0;
+
+  const impatient =
+    p95 > 400
+      ? 'will notice the tail quickly and needs acknowledgement before the interaction feels stuck.'
+      : 'is unlikely to mind the raw latency as long as the action visibly lands immediately.';
+  const cautious =
+    optimisticRollbackRate >= 30
+      ? 'will prefer explicit confirmation because the current optimistic rollback rate is visibly high.'
+      : 'can tolerate optimistic feedback because reversals are still relatively uncommon in this session.';
+  const observant =
+    skeletonAvg > spinnerAvg + 0.4
+      ? 'is currently rewarding skeletons more than spinners, so structural preview is winning the honesty test.'
+      : spinnerAvg > skeletonAvg + 0.4
+        ? 'is currently rewarding spinners more than skeleton placeholders in this sample.'
+        : 'is not showing a strong loader preference yet, so more ratings would sharpen the call.';
+
+  personaBoard.innerHTML = `
+    <p><strong>Impatient user:</strong> ${impatient}</p>
+    <p><strong>Cautious user:</strong> ${cautious}</p>
+    <p><strong>Observant user:</strong> ${observant}</p>
   `;
 }
 

@@ -38,6 +38,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Ship gate board compresses the current evidence into a simple ready / conditional / hold recommendation.
 - Next experiment board prioritizes the single best follow-up measurement so the session closes its biggest evidence gap first.
 - Friction budget board combines delay and rollback evidence into one read on how much explicit UI ceremony the flow can afford.
+- Persona board turns the current evidence into likely reactions from impatient, cautious, and observant users before the session gets shared as policy.
 - Session links now preserve the active profile, delay knob, and failure-rate setting for repeatable walkthroughs.
 
 ## Technical Design
