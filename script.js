@@ -56,6 +56,7 @@ const frictionBudgetBoard = document.getElementById('friction-budget-board');
 const personaBoard = document.getElementById('persona-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
+const copyDecisionLedgerButton = document.getElementById('copy-decision-ledger');
 const copySessionLinkButton = document.getElementById('copy-session-link');
 const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
@@ -1420,6 +1421,19 @@ function buildSessionReport() {
   ].join('\n');
 }
 
+function buildDecisionLedgerReport() {
+  return [
+    'UX Latency Lab Decision Ledger',
+    '',
+    `Delay posture: ${(latencyPosture?.textContent || '').replace(/\s+/g, ' ').trim() || 'No delay posture yet.'}`,
+    `Intervention ladder: ${(interventionLadder?.textContent || '').replace(/\s+/g, ' ').trim() || 'No intervention ladder yet.'}`,
+    `Ship gate: ${(shipGateBoard?.textContent || '').replace(/\s+/g, ' ').trim() || 'No ship gate yet.'}`,
+    `Decision ledger: ${(decisionLedgerBoard?.textContent || '').replace(/\s+/g, ' ').trim() || 'No ledger yet.'}`,
+    `Interaction contract: ${(interactionContractBoard?.textContent || '').replace(/\s+/g, ' ').trim() || 'No interaction contract yet.'}`,
+    `Trust budget: ${(trustBudgetBoard?.textContent || '').replace(/\s+/g, ' ').trim() || 'No trust-budget read yet.'}`,
+  ].join('\n');
+}
+
 function importSessionData(file) {
   const reader = new FileReader();
   reader.onload = () => {
@@ -1487,6 +1501,14 @@ copyReportButton.addEventListener('click', async () => {
     addLog('Copied session report to clipboard.', 'success');
   } catch (error) {
     addLog('Clipboard copy failed while building the session report.', 'fail');
+  }
+});
+copyDecisionLedgerButton?.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(buildDecisionLedgerReport());
+    addLog('Copied the decision ledger to clipboard.', 'success');
+  } catch (error) {
+    addLog('Clipboard copy failed while building the decision ledger.', 'fail');
   }
 });
 copySessionLinkButton.addEventListener('click', async () => {
