@@ -51,6 +51,7 @@ const shipGateBoard = document.getElementById('ship-gate-board');
 const nextExperimentBoard = document.getElementById('next-experiment-board');
 const decisionLedgerBoard = document.getElementById('decision-ledger-board');
 const interactionContractBoard = document.getElementById('interaction-contract-board');
+const recoveryCopyBoard = document.getElementById('recovery-copy-board');
 const trustBudgetBoard = document.getElementById('trust-budget-board');
 const frictionBudgetBoard = document.getElementById('friction-budget-board');
 const personaBoard = document.getElementById('persona-board');
@@ -625,6 +626,7 @@ function renderLaunchChecklist() {
   renderNextExperimentBoard();
   renderDecisionLedgerBoard();
   renderInteractionContractBoard();
+  renderRecoveryCopyBoard();
   renderTrustBudgetBoard();
   renderFrictionBudgetBoard();
   renderPersonaBoard();
@@ -955,6 +957,38 @@ function renderInteractionContractBoard() {
     <p><strong>Acknowledge:</strong> ${acknowledgeRule}</p>
     <p><strong>Loader:</strong> ${loaderRule}</p>
     <p><strong>Commit policy:</strong> ${optimisticRule}</p>
+  `;
+}
+
+function renderRecoveryCopyBoard() {
+  if (!recoveryCopyBoard) return;
+
+  const p95Delay = state.delayResults.length ? percentile(state.delayResults, 95) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+  const failureLogs = state.eventEntries.filter((entry) => entry.type === 'fail').length;
+
+  if (p95Delay === null && rollbackRate === null) {
+    recoveryCopyBoard.innerHTML = '<p><strong>Recovery copy:</strong> run delay and optimistic-save experiments before drafting what the UI should say when things get shaky.</p>';
+    return;
+  }
+
+  const opening =
+    p95Delay !== null && p95Delay > 400
+      ? 'Still working. We saved your place and will confirm when the action lands.'
+      : rollbackRate !== null && rollbackRate > 25
+        ? 'Saved optimistically. If this fails, we will roll it back and tell you what to do next.'
+        : 'Working...';
+  const followUp =
+    rollbackRate !== null && rollbackRate > 25
+      ? 'Use explicit undo or retry language because rollback is part of the likely user path, not a rare exception.'
+      : failureLogs >= 3
+        ? 'Failure copy should stay specific because the session is already surfacing repeated breakage.'
+        : 'Recovery copy can stay lightweight; the current evidence does not demand a heavy apology posture.';
+
+  recoveryCopyBoard.innerHTML = `
+    <p><strong>Recovery copy seed</strong></p>
+    <p><strong>Suggested status line:</strong> ${opening}</p>
+    <p><strong>Guidance:</strong> ${followUp}</p>
   `;
 }
 
