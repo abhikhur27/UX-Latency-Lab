@@ -40,6 +40,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Recovery copy board drafts a status-line pattern for slow or rollback-prone flows based on the current evidence.
 - Friction budget board combines delay and rollback evidence into one read on how much explicit UI ceremony the flow can afford.
 - Persona board turns the current evidence into likely reactions from impatient, cautious, and observant users before the session gets shared as policy.
+- Perception gap board compares measured delay, loading ratings, and rollback pressure so the session can name where user feeling diverges from raw timing.
 - Session links now preserve the active profile, delay knob, and failure-rate setting for repeatable walkthroughs.
 
 ## Technical Design

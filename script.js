@@ -55,6 +55,7 @@ const recoveryCopyBoard = document.getElementById('recovery-copy-board');
 const trustBudgetBoard = document.getElementById('trust-budget-board');
 const frictionBudgetBoard = document.getElementById('friction-budget-board');
 const personaBoard = document.getElementById('persona-board');
+const perceptionGapBoard = document.getElementById('perception-gap-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
 const copyDecisionLedgerButton = document.getElementById('copy-decision-ledger');
@@ -630,6 +631,44 @@ function renderLaunchChecklist() {
   renderTrustBudgetBoard();
   renderFrictionBudgetBoard();
   renderPersonaBoard();
+  renderPerceptionGapBoard();
+}
+
+function renderPerceptionGapBoard() {
+  if (!perceptionGapBoard) return;
+
+  const avgDelay = average(state.delayResults);
+  const spinnerAvg = average(state.loadRatings.spinner);
+  const skeletonAvg = average(state.loadRatings.skeleton);
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : 0;
+
+  if (!state.delayResults.length && !state.loadRatings.spinner.length && !state.loadRatings.skeleton.length && !state.optimisticRuns) {
+    perceptionGapBoard.textContent = 'Perception gap board: collect delay trials, loading ratings, and optimistic-save outcomes to compare measured latency against what users will actually feel.';
+    return;
+  }
+
+  const preferredLoading =
+    skeletonAvg === spinnerAvg
+      ? 'Neither loading treatment has a clear perception lead yet.'
+      : skeletonAvg > spinnerAvg
+        ? `Skeletons lead spinners by ${(skeletonAvg - spinnerAvg).toFixed(1)} rating points.`
+        : `Spinners lead skeletons by ${(spinnerAvg - skeletonAvg).toFixed(1)} rating points.`;
+  const delayRead =
+    !state.delayResults.length
+      ? 'No measured delay baseline yet.'
+      : avgDelay <= 120
+        ? `Measured latency is still near-instant at ${avgDelay.toFixed(0)} ms.`
+        : avgDelay <= 300
+          ? `Measured latency is noticeable at ${avgDelay.toFixed(0)} ms, so feedback polish now matters.`
+          : `Measured latency is slow enough at ${avgDelay.toFixed(0)} ms that UX framing is part of the product behavior, not a cosmetic choice.`;
+  const rollbackRead =
+    !state.optimisticRuns
+      ? 'No optimistic rollback data yet.'
+      : rollbackRate <= 15
+        ? `Rollback pressure is still manageable at ${rollbackRate.toFixed(0)}%.`
+        : `Rollback pressure is visible at ${rollbackRate.toFixed(0)}%, so perceived speed gains need stronger recovery copy.`;
+
+  perceptionGapBoard.textContent = `Perception gap board: ${delayRead} ${preferredLoading} ${rollbackRead}`;
 }
 
 function renderShipGateBoard() {
