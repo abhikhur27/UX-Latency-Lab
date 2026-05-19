@@ -56,6 +56,7 @@ const trustBudgetBoard = document.getElementById('trust-budget-board');
 const frictionBudgetBoard = document.getElementById('friction-budget-board');
 const personaBoard = document.getElementById('persona-board');
 const perceptionGapBoard = document.getElementById('perception-gap-board');
+const policyConflictBoard = document.getElementById('policy-conflict-board');
 const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
 const copyDecisionLedgerButton = document.getElementById('copy-decision-ledger');
@@ -632,6 +633,7 @@ function renderLaunchChecklist() {
   renderFrictionBudgetBoard();
   renderPersonaBoard();
   renderPerceptionGapBoard();
+  renderPolicyConflictBoard();
 }
 
 function renderPerceptionGapBoard() {
@@ -669,6 +671,43 @@ function renderPerceptionGapBoard() {
         : `Rollback pressure is visible at ${rollbackRate.toFixed(0)}%, so perceived speed gains need stronger recovery copy.`;
 
   perceptionGapBoard.textContent = `Perception gap board: ${delayRead} ${preferredLoading} ${rollbackRead}`;
+}
+
+function renderPolicyConflictBoard() {
+  if (!policyConflictBoard) return;
+
+  const avgDelay = average(state.delayTrials);
+  const rollbackRate = state.optimisticRuns
+    ? (state.optimisticRollbacks / state.optimisticRuns) * 100
+    : null;
+  const spinnerAverage = average(state.spinnerRatings);
+  const skeletonAverage = average(state.skeletonRatings);
+
+  if (!state.delayTrials.length && !state.spinnerRatings.length && !state.optimisticRuns) {
+    policyConflictBoard.textContent = 'Policy conflict board: run the delay, loading, and optimistic-save experiments before asking whether the product guidance agrees with itself.';
+    return;
+  }
+
+  const feedbackBand = state.delayTrials.length ? recommendedFeedback(avgDelay) : 'Unknown';
+  const loaderWinner = spinnerAverage === skeletonAverage
+    ? 'Neither loading pattern is clearly leading yet.'
+    : skeletonAverage > spinnerAverage
+      ? 'Skeletons currently feel faster than spinners.'
+      : 'Spinners are currently scoring better than skeletons.';
+  const rollbackRead = rollbackRate == null
+    ? 'Rollback pressure is still unmeasured.'
+    : rollbackRate <= 15
+      ? `Rollback pressure is low at ${rollbackRate.toFixed(0)}%, so optimistic updates are supportable.`
+      : `Rollback pressure is high at ${rollbackRate.toFixed(0)}%, so optimistic speed gains need stronger recovery copy or reduced scope.`;
+  const conflict = feedbackBand === 'Instant' && rollbackRate != null && rollbackRate > 15
+    ? 'Measured delay is low, but failure recovery is the real policy bottleneck.'
+    : feedbackBand === 'Loader-worthy' && skeletonAverage <= spinnerAverage
+      ? 'The timing wants stronger feedback, but the current loading treatment is not clearly helping perception.'
+      : (feedbackBand === 'Responsive' || feedbackBand === 'Loader-worthy') && rollbackRate != null && rollbackRate <= 15
+        ? 'The delay evidence wants visible feedback while the commit evidence still leaves room for optimistic updates.'
+        : 'The current guidance is mostly aligned across timing, loading perception, and rollback evidence.';
+
+  policyConflictBoard.textContent = `Policy conflict board: ${feedbackBand} response band. ${loaderWinner} ${rollbackRead} Conflict read: ${conflict}`;
 }
 
 function renderShipGateBoard() {
@@ -1504,6 +1543,7 @@ function buildDecisionLedgerReport() {
     `Decision ledger: ${(decisionLedgerBoard?.textContent || '').replace(/\s+/g, ' ').trim() || 'No ledger yet.'}`,
     `Interaction contract: ${(interactionContractBoard?.textContent || '').replace(/\s+/g, ' ').trim() || 'No interaction contract yet.'}`,
     `Trust budget: ${(trustBudgetBoard?.textContent || '').replace(/\s+/g, ' ').trim() || 'No trust-budget read yet.'}`,
+    `Policy conflict: ${(policyConflictBoard?.textContent || '').replace(/\s+/g, ' ').trim() || 'No policy-conflict read yet.'}`,
   ].join('\n');
 }
 
