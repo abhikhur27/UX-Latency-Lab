@@ -332,6 +332,30 @@ td {
   color: var(--muted);
 }
 
+/* Portfolio clarity mode: keep core simulator outputs and hide analysis-panel sprawl. */
+#release-board,
+#budget-coach,
+#intervention-ladder,
+#latency-posture,
+#evidence-coverage,
+#experiment-debt,
+#confidence-board,
+#rollback-tolerance-board,
+#rollback-rehearsal-board,
+#launch-checklist,
+#ship-gate-board,
+#next-experiment-board,
+#decision-ledger-board,
+#interaction-contract-board,
+#recovery-copy-board,
+#trust-budget-board,
+#friction-budget-board,
+#persona-board,
+#perception-gap-board,
+#policy-conflict-board {
+  display: none;
+}
+
 @media (max-width: 980px) {
   .grid {
     grid-template-columns: 1fr;
