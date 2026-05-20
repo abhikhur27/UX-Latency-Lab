@@ -65,6 +65,7 @@ const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
 const resetSessionButton = document.getElementById('reset-session');
 const sweepFailureRatesButton = document.getElementById('sweep-failure-rates');
+const exportFailureSweepButton = document.getElementById('export-failure-sweep');
 const failureSweepBody = document.getElementById('failure-sweep-body');
 const failureSweepSummary = document.getElementById('failure-sweep-summary');
 
@@ -78,6 +79,7 @@ const profileMap = {
 let currentLoadType = null;
 let standardPending = false;
 let optimisticPending = false;
+let lastFailureSweepRows = [];
 
 const state = loadState();
 
@@ -1244,6 +1246,7 @@ function sweepFailureRates() {
       recommendation: optimisticRecommendationForRate(rollbackRate),
     };
   });
+  lastFailureSweepRows = rows;
 
   failureSweepBody.innerHTML = rows
     .map(
@@ -1271,6 +1274,24 @@ function sweepFailureRates() {
   }
 
   addLog('Failure-rate sweep completed for optimistic UI guidance.', 'success');
+}
+
+function exportFailureSweepCsv() {
+  if (!lastFailureSweepRows.length) {
+    addLog('Run the failure-rate sweep before exporting it.', 'warning');
+    return;
+  }
+
+  const header = 'failureRate,confirmedRate,rollbackRate,recommendation';
+  const rows = lastFailureSweepRows.map((row) => `${row.rate}%,${row.confirmed},${row.rollback},"${row.recommendation}"`);
+  const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'ux-latency-failure-sweep.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+  addLog('Exported failure-rate sweep CSV.', 'success');
 }
 
 async function runDelayTrial() {
@@ -1642,6 +1663,7 @@ importFileInput.addEventListener('change', () => {
 });
 resetSessionButton.addEventListener('click', resetSession);
 sweepFailureRatesButton.addEventListener('click', sweepFailureRates);
+exportFailureSweepButton?.addEventListener('click', exportFailureSweepCsv);
 
 document.addEventListener('keydown', (event) => {
   if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || isEditableTarget(event.target)) {
