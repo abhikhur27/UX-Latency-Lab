@@ -2,6 +2,7 @@
 const delayRun = document.getElementById('delay-run');
 const delayClear = document.getElementById('delay-clear');
 const benchmarkProfilesButton = document.getElementById('benchmark-profiles');
+const exportDelayTrialsButton = document.getElementById('export-delay-trials');
 const delayStatus = document.getElementById('delay-status');
 const delayChart = document.getElementById('delay-chart');
 const delaySummary = document.getElementById('delay-summary');
@@ -295,6 +296,27 @@ function renderDelayResults() {
   renderDelayVolatility();
   renderLatencyBudgetBoard();
   renderSessionMemo();
+}
+
+function exportDelayTrials() {
+  if (!state.delayResults.length) {
+    delayStatus.textContent = 'Run a few delay trials before exporting CSV.';
+    return;
+  }
+
+  const rows = ['trial,measured_delay_ms,active_profile'];
+  state.delayResults.forEach((result, index) => {
+    rows.push(`${index + 1},${result.toFixed(2)},${networkProfile.value}`);
+  });
+
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = 'ux-latency-delay-trials.csv';
+  anchor.click();
+  URL.revokeObjectURL(url);
+  delayStatus.textContent = 'Exported delay trials CSV.';
 }
 
 function renderOutcomeStats() {
@@ -1623,6 +1645,7 @@ delayInput.addEventListener('input', syncUrlState);
 delayRun.addEventListener('click', runDelayTrial);
 delayClear.addEventListener('click', clearDelayTrials);
 benchmarkProfilesButton.addEventListener('click', benchmarkProfiles);
+exportDelayTrialsButton?.addEventListener('click', exportDelayTrials);
 loadSpinner.addEventListener('click', () => runLoadingScenario('spinner'));
 loadSkeleton.addEventListener('click', () => runLoadingScenario('skeleton'));
 loadingClear.addEventListener('click', clearRatings);

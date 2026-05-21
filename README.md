@@ -9,6 +9,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
    - Apply network profile presets.
    - Run repeated trials.
 - Benchmark all built-in profiles in one shot.
+- Delay trials can be exported as CSV for spreadsheet review or product review docs.
 - View measured timings and average.
 - Session percentile cut points for median, P75, P95, and slowest-trial analysis.
 - Profile benchmark summary calls out the fastest profile, harshest latency band, and the feedback-design takeaway.
@@ -80,6 +81,12 @@ Open `http://localhost:8000`.
 - Fully static.
 - No backend dependencies.
 - Deploy from repository root.
+
+## Portfolio Positioning
+
+- Honest label: browser experiment lab for latency and optimistic UI behavior.
+- Strongest walkthrough: run one benchmark, one loader comparison, and one rollback sweep tied to a product decision.
+- Current bar: evidence that leads to a decision is more valuable than adding more summary boards.
 
 ## Future Improvements
 
