@@ -88,6 +88,12 @@ Open `http://localhost:8000`.
 - Strongest walkthrough: run one benchmark, one loader comparison, and one rollback sweep tied to a product decision.
 - Current bar: evidence that leads to a decision is more valuable than adding more summary boards.
 
+## Session Artifacts
+
+- `Copy Session Report` is for the one-paragraph product recommendation.
+- `Copy Decision Ledger` is for a more explicit policy handoff when you need loader, acknowledgement, and rollback posture spelled out.
+- Exported session JSON is the reproducibility path when the same experiment setup should be reopened later.
+
 ## Future Improvements
 
 - Add charts for percentile latency distributions.
