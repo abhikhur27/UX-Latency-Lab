@@ -94,6 +94,12 @@ Open `http://localhost:8000`.
 - `Copy Decision Ledger` is for a more explicit policy handoff when you need loader, acknowledgement, and rollback posture spelled out.
 - Exported session JSON is the reproducibility path when the same experiment setup should be reopened later.
 
+## Reproducible Session Flow
+
+- Use the session link when only the active knobs matter.
+- Use the copied report or decision ledger when the evidence already supports a product-facing recommendation.
+- Use exported session JSON when the experiment evidence itself should be re-opened and challenged later.
+
 ## Future Improvements
 
 - Add charts for percentile latency distributions.
