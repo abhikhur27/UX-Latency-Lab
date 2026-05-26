@@ -105,3 +105,12 @@ Open `http://localhost:8000`.
 - Add charts for percentile latency distributions.
 - Add offline-first scenarios and cache-hit simulations.
 - Add side-by-side historical session comparisons for repeated product reviews.
+
+## Product Decision Gate
+
+Use this gate before claiming a UX recommendation:
+
+1. At least one profile benchmark run with percentile readout.
+2. At least one loader comparison with user-perception input.
+3. At least one optimistic-flow failure sweep.
+4. Export one decision ledger that names the recommended feedback policy.
