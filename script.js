@@ -1727,4 +1727,6 @@ renderInsights();
 renderEvidenceCoverage();
 syncLikeCounters();
 renderEventLog();
-addLog('Latency lab initialized from local session storage.', 'success');
+if (!state.eventEntries.length) {
+  addLog('Latency lab initialized from local session storage.', 'success');
+}
