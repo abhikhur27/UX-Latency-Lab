@@ -1715,6 +1715,12 @@ document.addEventListener('keydown', (event) => {
   } else if (key === 'f') {
     event.preventDefault();
     sweepFailureRates();
+  } else if (key === 'r') {
+    event.preventDefault();
+    copyReportButton.click();
+  } else if (key === 'l') {
+    event.preventDefault();
+    copySessionLinkButton.click();
   }
 });
 
