@@ -115,3 +115,9 @@ Use this gate before claiming a UX recommendation:
 2. At least one loader comparison with user-perception input.
 3. At least one optimistic-flow failure sweep.
 4. Export one decision ledger that names the recommended feedback policy.
+
+## Quick Verification Command
+
+Run this syntax check before sharing updates:
+- node --check script.js
+
