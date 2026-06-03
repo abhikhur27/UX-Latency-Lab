@@ -38,6 +38,12 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Evidence confidence board grades whether the current session is robust enough for product-facing conclusions.
 - Rollback rehearsal board reads optimistic failures as a product-copy burden, not just an error percentage.
 - Ship gate board compresses the current evidence into a simple ready / conditional / hold recommendation.
+
+## Session handoff
+
+- Export delay trials when you need raw measurements in CSV.
+- Export the full session when you want a reusable artifact for later product review.
+- Copy the report or decision ledger when you need the product-facing conclusion without reopening the app.
 - Next experiment board prioritizes the single best follow-up measurement so the session closes its biggest evidence gap first.
 - Recovery copy board drafts a status-line pattern for slow or rollback-prone flows based on the current evidence.
 - Friction budget board combines delay and rollback evidence into one read on how much explicit UI ceremony the flow can afford.
