@@ -127,3 +127,9 @@ Use this gate before claiming a UX recommendation:
 Run this syntax check before sharing updates:
 - node --check script.js
 
+## Demo Flow
+
+1. Benchmark a fast and slow profile.
+2. Run the loader comparison and optimistic update experiment back to back.
+3. Copy the session memo once the release-readiness board has enough evidence for a product call.
+
