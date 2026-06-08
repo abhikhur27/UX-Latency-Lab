@@ -1,4 +1,4 @@
-# UX Latency Lab
+# Interaction Latency Explorer
 
 Interactive lab for testing how latency and feedback patterns influence user perception.
 
