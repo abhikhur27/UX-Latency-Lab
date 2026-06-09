@@ -133,3 +133,11 @@ Run this syntax check before sharing updates:
 2. Run the loader comparison and optimistic update experiment back to back.
 3. Copy the session memo once the release-readiness board has enough evidence for a product call.
 
+## Product Review Route
+
+If this is being used in a portfolio or interview setting, keep the conclusion pointed:
+
+1. Name the target UX question first.
+2. Run only the experiment that answers that question.
+3. End with one copied recommendation instead of narrating every board on screen.
+
