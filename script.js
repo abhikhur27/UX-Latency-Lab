@@ -199,6 +199,73 @@ function renderDelayVolatility() {
   ].join('');
 }
 
+function renderDelayChartSvg(values) {
+  if (!delayChart) return;
+  if (!values.length) {
+    delayChart.innerHTML = '';
+    return;
+  }
+
+  const width = 520;
+  const height = 150;
+  const padX = 18;
+  const padTop = 12;
+  const padBottom = 28;
+  const chartHeight = height - padTop - padBottom;
+  const chartWidth = width - padX * 2;
+  const ceiling = Math.max(500, ...values) * 1.08;
+  const stepX = values.length === 1 ? 0 : chartWidth / (values.length - 1);
+  const scaleY = (value) => padTop + chartHeight - (value / ceiling) * chartHeight;
+  const points = values.map((value, index) => `${(padX + index * stepX).toFixed(1)},${scaleY(value).toFixed(1)}`).join(' ');
+  const areaPoints = `${padX},${padTop + chartHeight} ${points} ${padX + chartWidth},${padTop + chartHeight}`;
+  const percentileLines = [
+    { label: 'P50', value: percentile(values, 50), color: '#38bdf8' },
+    { label: 'P95', value: percentile(values, 95), color: '#f59e0b' },
+  ];
+  const thresholds = [
+    { label: '100 ms', value: 100 },
+    { label: '250 ms', value: 250 },
+    { label: '500 ms', value: 500 },
+  ].filter((entry) => entry.value <= ceiling);
+
+  const escaped = (text) => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  delayChart.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" role="img" aria-label="Measured latency trend with percentile and budget guides">
+      <rect x="0" y="0" width="${width}" height="${height}" rx="10" fill="#0f1420"></rect>
+      ${thresholds
+        .map((entry) => {
+          const y = scaleY(entry.value).toFixed(1);
+          return `<g>
+            <line x1="${padX}" y1="${y}" x2="${padX + chartWidth}" y2="${y}" stroke="rgba(148, 163, 184, 0.22)" stroke-dasharray="4 4"></line>
+            <text x="${padX}" y="${Math.max(10, Number(y) - 4)}" fill="#94a3b8" font-size="9">${escaped(entry.label)}</text>
+          </g>`;
+        })
+        .join('')}
+      <polygon points="${areaPoints}" fill="rgba(59, 130, 246, 0.18)"></polygon>
+      <polyline points="${points}" fill="none" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+      ${values
+        .map((value, index) => {
+          const x = (padX + index * stepX).toFixed(1);
+          const y = scaleY(value).toFixed(1);
+          return `<g>
+            <circle cx="${x}" cy="${y}" r="3.5" fill="#e2e8f0"></circle>
+            <text x="${x}" y="${height - 8}" fill="#94a3b8" font-size="9" text-anchor="middle">${index + 1}</text>
+          </g>`;
+        })
+        .join('')}
+      ${percentileLines
+        .map((entry) => {
+          const y = scaleY(entry.value).toFixed(1);
+          return `<g>
+            <line x1="${padX}" y1="${y}" x2="${padX + chartWidth}" y2="${y}" stroke="${entry.color}" stroke-width="1.5"></line>
+            <text x="${padX + chartWidth}" y="${Math.max(10, Number(y) - 4)}" fill="${entry.color}" font-size="9" text-anchor="end">${escaped(entry.label)} ${entry.value.toFixed(0)} ms</text>
+          </g>`;
+        })
+        .join('')}
+    </svg>
+  `;
+}
+
 function renderLatencyBudgetBoard() {
   if (!latencyBudgetBoard) return;
   if (!state.delayResults.length) {
@@ -269,16 +336,7 @@ function renderDelayResults() {
     return;
   }
 
-  const maxValue = Math.max(...state.delayResults);
-  delayChart.innerHTML = '';
-
-  state.delayResults.forEach((result) => {
-    const bar = document.createElement('div');
-    bar.className = 'bar';
-    bar.style.height = `${Math.max(8, (result / maxValue) * 100)}%`;
-    bar.title = `${result.toFixed(0)} ms`;
-    delayChart.appendChild(bar);
-  });
+  renderDelayChartSvg(state.delayResults);
 
   const avg = average(state.delayResults);
   const p50 = percentile(state.delayResults, 50);
