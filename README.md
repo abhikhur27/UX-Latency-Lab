@@ -9,6 +9,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
    - Apply network profile presets.
    - Run repeated trials.
 - Benchmark all built-in profiles in one shot.
+- Profile benchmark runs can now be exported as CSV and preserved inside session snapshots for later product review.
 - Delay trials can be exported as CSV for spreadsheet review or product review docs.
 - Delay trials now render as a percentile-annotated trend chart with 100 ms / 250 ms / 500 ms budget guides.
 - View measured timings and average.

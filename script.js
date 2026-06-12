@@ -2,6 +2,7 @@
 const delayRun = document.getElementById('delay-run');
 const delayClear = document.getElementById('delay-clear');
 const benchmarkProfilesButton = document.getElementById('benchmark-profiles');
+const exportProfileBenchmarksButton = document.getElementById('export-profile-benchmarks');
 const exportDelayTrialsButton = document.getElementById('export-delay-trials');
 const delayStatus = document.getElementById('delay-status');
 const delayChart = document.getElementById('delay-chart');
@@ -81,12 +82,14 @@ let currentLoadType = null;
 let standardPending = false;
 let optimisticPending = false;
 let lastFailureSweepRows = [];
+let lastProfileBenchmarkRows = [];
 
 const state = loadState();
 
 function defaultState() {
   return {
     delayResults: [],
+    profileBenchmarks: [],
     loadRatings: {
       spinner: [],
       skeleton: [],
@@ -113,6 +116,7 @@ function loadState() {
         spinner: Array.isArray(parsed.loadRatings?.spinner) ? parsed.loadRatings.spinner : [],
         skeleton: Array.isArray(parsed.loadRatings?.skeleton) ? parsed.loadRatings.skeleton : [],
       },
+      profileBenchmarks: Array.isArray(parsed.profileBenchmarks) ? parsed.profileBenchmarks.slice(0, 12) : [],
       standardRuns: Number.isFinite(parsed.standardRuns) ? parsed.standardRuns : 0,
       standardFailures: Number.isFinite(parsed.standardFailures) ? parsed.standardFailures : 0,
       optimisticRuns: Number.isFinite(parsed.optimisticRuns) ? parsed.optimisticRuns : 0,
@@ -1254,6 +1258,41 @@ function optimisticRecommendationForRate(rollbackRate) {
   return 'Prefer standard confirmation';
 }
 
+function renderProfileBenchmarks(rows = lastProfileBenchmarkRows) {
+  const normalizedRows = Array.isArray(rows) ? rows : [];
+  lastProfileBenchmarkRows = normalizedRows.map((row) => ({ ...row }));
+
+  profileBenchmarkBody.innerHTML = lastProfileBenchmarkRows.length
+    ? lastProfileBenchmarkRows
+      .map(
+        (row) => `
+          <tr>
+            <td>${row.label}</td>
+            <td>${row.avg.toFixed(1)} ms</td>
+            <td>${row.p95.toFixed(1)} ms</td>
+            <td>${row.feedback}</td>
+          </tr>
+        `
+      )
+      .join('')
+    : '<tr><td colspan="4" class="empty">Run Benchmark Profiles to compare the built-in network presets.</td></tr>';
+
+  if (!profileBenchmarkSummary) return;
+  if (!lastProfileBenchmarkRows.length) {
+    profileBenchmarkSummary.innerHTML = '<p>Run Benchmark Profiles to identify the harshest latency band and the lightest acceptable feedback pattern.</p>';
+    return;
+  }
+
+  const fastest = lastProfileBenchmarkRows.reduce((best, row) => (row.avg < best.avg ? row : best));
+  const harshest = lastProfileBenchmarkRows.reduce((worst, row) => (row.p95 > worst.p95 ? row : worst));
+  const drift = harshest.p95 - fastest.avg;
+  profileBenchmarkSummary.innerHTML = `
+    <p><strong>Fastest profile:</strong> ${fastest.label} at ${fastest.avg.toFixed(1)} ms average.</p>
+    <p><strong>Harshest profile:</strong> ${harshest.label} at ${harshest.p95.toFixed(1)} ms P95.</p>
+    <p><strong>Drift window:</strong> the harshest tail is ${drift.toFixed(1)} ms slower than the fastest average, so the harsh profile should own the UI budget.</p>
+  `;
+}
+
 async function benchmarkProfiles() {
   benchmarkProfilesButton.disabled = true;
   delayStatus.textContent = 'Benchmarking built-in profiles...';
@@ -1278,31 +1317,30 @@ async function benchmarkProfiles() {
     });
   }
 
-  profileBenchmarkBody.innerHTML = rows
-    .map(
-      (row) => `
-        <tr>
-          <td>${row.label}</td>
-          <td>${row.avg.toFixed(1)} ms</td>
-          <td>${row.p95.toFixed(1)} ms</td>
-          <td>${row.feedback}</td>
-        </tr>
-      `
-    )
-    .join('');
-
-  if (profileBenchmarkSummary) {
-    const fastest = rows.reduce((best, row) => (row.avg < best.avg ? row : best));
-    const harshest = rows.reduce((worst, row) => (row.p95 > worst.p95 ? row : worst));
-    profileBenchmarkSummary.innerHTML = `
-      <p><strong>Fastest profile:</strong> ${fastest.label} at ${fastest.avg.toFixed(1)} ms average.</p>
-      <p><strong>Harshest profile:</strong> ${harshest.label} at ${harshest.p95.toFixed(1)} ms P95.</p>
-      <p><strong>Takeaway:</strong> Size feedback patterns for the harshest band, not the happy path.</p>
-    `;
-  }
+  state.profileBenchmarks = rows.map((row) => ({ ...row }));
+  renderProfileBenchmarks(rows);
+  saveState();
 
   delayStatus.textContent = 'Profile benchmark complete.';
   benchmarkProfilesButton.disabled = false;
+}
+
+function exportProfileBenchmarksCsv() {
+  if (!lastProfileBenchmarkRows.length) {
+    addLog('Run profile benchmarks before exporting them.', 'warning');
+    return;
+  }
+
+  const header = 'profile,avgDelayMs,p95DelayMs,suggestedFeedback';
+  const rows = lastProfileBenchmarkRows.map((row) => `"${row.label}",${row.avg.toFixed(1)},${row.p95.toFixed(1)},"${row.feedback}"`);
+  const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'ux-latency-profile-benchmarks.csv';
+  link.click();
+  URL.revokeObjectURL(url);
+  addLog('Exported profile benchmark CSV.', 'success');
 }
 
 function sweepFailureRates() {
@@ -1578,6 +1616,7 @@ function exportSessionData() {
   const exported = {
     exportedAt: new Date().toISOString(),
     delayResults: state.delayResults,
+    profileBenchmarks: state.profileBenchmarks,
     loadRatings: state.loadRatings,
     standardLikes: state.standardLikes,
     optimisticLikes: state.optimisticLikes,
@@ -1654,6 +1693,7 @@ function importSessionData(file) {
     try {
       const parsed = JSON.parse(String(reader.result || '{}'));
       state.delayResults = Array.isArray(parsed.delayResults) ? parsed.delayResults.slice(0, 20) : [];
+      state.profileBenchmarks = Array.isArray(parsed.profileBenchmarks) ? parsed.profileBenchmarks.slice(0, 12) : [];
       state.loadRatings = {
         spinner: Array.isArray(parsed.loadRatings?.spinner) ? parsed.loadRatings.spinner.slice(0, 40) : [],
         skeleton: Array.isArray(parsed.loadRatings?.skeleton) ? parsed.loadRatings.skeleton.slice(0, 40) : [],
@@ -1667,6 +1707,7 @@ function importSessionData(file) {
       state.eventEntries = Array.isArray(parsed.eventEntries) ? parsed.eventEntries.slice(0, 14) : [];
 
       renderDelayResults();
+      renderProfileBenchmarks(state.profileBenchmarks);
       renderLoadingSummary();
       renderOutcomeStats();
       renderInsights();
@@ -1703,6 +1744,7 @@ delayInput.addEventListener('input', syncUrlState);
 delayRun.addEventListener('click', runDelayTrial);
 delayClear.addEventListener('click', clearDelayTrials);
 benchmarkProfilesButton.addEventListener('click', benchmarkProfiles);
+exportProfileBenchmarksButton?.addEventListener('click', exportProfileBenchmarksCsv);
 exportDelayTrialsButton?.addEventListener('click', exportDelayTrials);
 loadSpinner.addEventListener('click', () => runLoadingScenario('spinner'));
 loadSkeleton.addEventListener('click', () => runLoadingScenario('skeleton'));
@@ -1785,6 +1827,7 @@ document.addEventListener('keydown', (event) => {
 hydrateFromUrlState();
 renderRatingButtons();
 renderDelayResults();
+renderProfileBenchmarks(state.profileBenchmarks);
 renderLoadingSummary();
 renderOutcomeStats();
 renderInsights();
