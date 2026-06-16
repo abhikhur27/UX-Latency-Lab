@@ -9,12 +9,13 @@ Interactive lab for testing how latency and feedback patterns influence user per
    - Apply network profile presets.
    - Run repeated trials.
 - Benchmark all built-in profiles in one shot.
+- Built-in profile benchmarking now includes jitter, so the profile table distinguishes slow averages from genuinely noisy latency.
 - Profile benchmark runs can now be exported as CSV and preserved inside session snapshots for later product review.
 - Delay trials can be exported as CSV for spreadsheet review or product review docs.
 - Delay trials now render as a percentile-annotated trend chart with 100 ms / 250 ms / 500 ms budget guides.
 - View measured timings and average.
 - Session percentile cut points for median, P75, P95, and slowest-trial analysis.
-- Profile benchmark summary calls out the fastest profile, harshest latency band, and the feedback-design takeaway.
+- Profile benchmark summary now calls out the fastest profile, harshest latency band, and the noisiest jitter profile before making a feedback recommendation.
 - Latency budget board maps the current trial distribution to instant, responsive, and loader-worthy product thresholds.
 
 2. **Loading feedback perception**

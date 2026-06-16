@@ -73,9 +73,9 @@ const failureSweepSummary = document.getElementById('failure-sweep-summary');
 
 const STORAGE_KEY = 'ux_latency_lab_state_v1';
 const profileMap = {
-  snappy: { delay: 80, failRate: 5, label: 'Snappy Wi-Fi profile loaded.' },
-  mobile: { delay: 180, failRate: 20, label: 'Mobile 5G profile loaded.' },
-  degraded: { delay: 420, failRate: 40, label: 'Degraded campus Wi-Fi profile loaded.' },
+  snappy: { delay: 80, jitter: 20, failRate: 5, label: 'Snappy Wi-Fi profile loaded.' },
+  mobile: { delay: 180, jitter: 55, failRate: 20, label: 'Mobile 5G profile loaded.' },
+  degraded: { delay: 420, jitter: 140, failRate: 40, label: 'Degraded campus Wi-Fi profile loaded.' },
 };
 
 let currentLoadType = null;
@@ -116,7 +116,9 @@ function loadState() {
         spinner: Array.isArray(parsed.loadRatings?.spinner) ? parsed.loadRatings.spinner : [],
         skeleton: Array.isArray(parsed.loadRatings?.skeleton) ? parsed.loadRatings.skeleton : [],
       },
-      profileBenchmarks: Array.isArray(parsed.profileBenchmarks) ? parsed.profileBenchmarks.slice(0, 12) : [],
+      profileBenchmarks: Array.isArray(parsed.profileBenchmarks)
+        ? parsed.profileBenchmarks.slice(0, 12).map((row) => ({ ...row, stdev: Number.isFinite(row?.stdev) ? row.stdev : 0 }))
+        : [],
       standardRuns: Number.isFinite(parsed.standardRuns) ? parsed.standardRuns : 0,
       standardFailures: Number.isFinite(parsed.standardFailures) ? parsed.standardFailures : 0,
       optimisticRuns: Number.isFinite(parsed.optimisticRuns) ? parsed.optimisticRuns : 0,
@@ -1270,12 +1272,13 @@ function renderProfileBenchmarks(rows = lastProfileBenchmarkRows) {
             <td>${row.label}</td>
             <td>${row.avg.toFixed(1)} ms</td>
             <td>${row.p95.toFixed(1)} ms</td>
+            <td>${row.stdev.toFixed(1)} ms</td>
             <td>${row.feedback}</td>
           </tr>
         `
       )
       .join('')
-    : '<tr><td colspan="4" class="empty">Run Benchmark Profiles to compare the built-in network presets.</td></tr>';
+    : '<tr><td colspan="5" class="empty">Run Benchmark Profiles to compare the built-in network presets.</td></tr>';
 
   if (!profileBenchmarkSummary) return;
   if (!lastProfileBenchmarkRows.length) {
@@ -1285,12 +1288,20 @@ function renderProfileBenchmarks(rows = lastProfileBenchmarkRows) {
 
   const fastest = lastProfileBenchmarkRows.reduce((best, row) => (row.avg < best.avg ? row : best));
   const harshest = lastProfileBenchmarkRows.reduce((worst, row) => (row.p95 > worst.p95 ? row : worst));
+  const noisiest = lastProfileBenchmarkRows.reduce((worst, row) => (row.stdev > worst.stdev ? row : worst));
   const drift = harshest.p95 - fastest.avg;
   profileBenchmarkSummary.innerHTML = `
     <p><strong>Fastest profile:</strong> ${fastest.label} at ${fastest.avg.toFixed(1)} ms average.</p>
     <p><strong>Harshest profile:</strong> ${harshest.label} at ${harshest.p95.toFixed(1)} ms P95.</p>
+    <p><strong>Noisiest profile:</strong> ${noisiest.label} at ${noisiest.stdev.toFixed(1)} ms jitter, so its feedback needs stronger progress signaling.</p>
     <p><strong>Drift window:</strong> the harshest tail is ${drift.toFixed(1)} ms slower than the fastest average, so the harsh profile should own the UI budget.</p>
   `;
+}
+
+function sampleProfileDelay(profile) {
+  const jitterSpan = Math.max(0, profile.jitter || 0);
+  const centeredNoise = jitterSpan ? (Math.random() * 2 - 1) * jitterSpan : 0;
+  return Math.max(0, Math.round(profile.delay + centeredNoise));
 }
 
 async function benchmarkProfiles() {
@@ -1301,18 +1312,21 @@ async function benchmarkProfiles() {
   for (const [key, profile] of Object.entries(profileMap)) {
     const samples = [];
 
-    for (let index = 0; index < 4; index += 1) {
+    for (let index = 0; index < 6; index += 1) {
+      const requestedDelay = sampleProfileDelay(profile);
       const start = performance.now();
-      await new Promise((resolve) => setTimeout(resolve, profile.delay));
+      await new Promise((resolve) => setTimeout(resolve, requestedDelay));
       samples.push(performance.now() - start);
     }
 
     const avg = average(samples);
     const p95 = percentile(samples, 95);
+    const stdev = standardDeviation(samples);
     rows.push({
       label: key === 'snappy' ? 'Snappy Wi-Fi' : key === 'mobile' ? 'Mobile 5G' : 'Degraded campus Wi-Fi',
       avg,
       p95,
+      stdev,
       feedback: recommendedFeedback(avg),
     });
   }
@@ -1331,8 +1345,8 @@ function exportProfileBenchmarksCsv() {
     return;
   }
 
-  const header = 'profile,avgDelayMs,p95DelayMs,suggestedFeedback';
-  const rows = lastProfileBenchmarkRows.map((row) => `"${row.label}",${row.avg.toFixed(1)},${row.p95.toFixed(1)},"${row.feedback}"`);
+  const header = 'profile,avgDelayMs,p95DelayMs,jitterStdDevMs,suggestedFeedback';
+  const rows = lastProfileBenchmarkRows.map((row) => `"${row.label}",${row.avg.toFixed(1)},${row.p95.toFixed(1)},${row.stdev.toFixed(1)},"${row.feedback}"`);
   const blob = new Blob([[header, ...rows].join('\n')], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -1693,7 +1707,9 @@ function importSessionData(file) {
     try {
       const parsed = JSON.parse(String(reader.result || '{}'));
       state.delayResults = Array.isArray(parsed.delayResults) ? parsed.delayResults.slice(0, 20) : [];
-      state.profileBenchmarks = Array.isArray(parsed.profileBenchmarks) ? parsed.profileBenchmarks.slice(0, 12) : [];
+      state.profileBenchmarks = Array.isArray(parsed.profileBenchmarks)
+        ? parsed.profileBenchmarks.slice(0, 12).map((row) => ({ ...row, stdev: Number.isFinite(row?.stdev) ? row.stdev : 0 }))
+        : [];
       state.loadRatings = {
         spinner: Array.isArray(parsed.loadRatings?.spinner) ? parsed.loadRatings.spinner.slice(0, 40) : [],
         skeleton: Array.isArray(parsed.loadRatings?.skeleton) ? parsed.loadRatings.skeleton.slice(0, 40) : [],
