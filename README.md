@@ -32,6 +32,7 @@ Interactive lab for testing how latency and feedback patterns influence user per
 - Session memo converts the current experiment data into a product-facing recommendation.
 - Keyboard shortcuts now include `R` (copy report) and `L` (copy shareable session link).
 - Policy scorecard turns the current session into concrete guidance for action feedback, loader choice, and commit strategy.
+- Baseline compare snapshots let one session be saved and contrasted against a later run so latency or rollback improvements are measured, not just claimed.
 - Release-readiness board condenses all three experiments into a single ship/no-ship style brief.
 - Latency posture board turns the full session into a compact operating read on tail risk, loader posture, and rollback pressure.
 - Intervention ladder turns the current evidence into a concrete acknowledge-vs-loader-vs-optimistic policy recommendation.
@@ -109,6 +110,7 @@ Open `http://localhost:8000`.
 - Use the session link when only the active knobs matter.
 - Use the copied report or decision ledger when the evidence already supports a product-facing recommendation.
 - Use exported session JSON when the experiment evidence itself should be re-opened and challenged later.
+- Use `Save Baseline` when you want a before/after delta against a later tuning pass without exporting or importing another file first.
 
 ## Future Improvements
 

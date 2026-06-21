@@ -63,6 +63,8 @@ const exportSessionButton = document.getElementById('export-session');
 const copyReportButton = document.getElementById('copy-report');
 const copyDecisionLedgerButton = document.getElementById('copy-decision-ledger');
 const copySessionLinkButton = document.getElementById('copy-session-link');
+const saveBaselineButton = document.getElementById('save-baseline');
+const clearBaselineButton = document.getElementById('clear-baseline');
 const importSessionButton = document.getElementById('import-session');
 const importFileInput = document.getElementById('import-file');
 const resetSessionButton = document.getElementById('reset-session');
@@ -70,6 +72,7 @@ const sweepFailureRatesButton = document.getElementById('sweep-failure-rates');
 const exportFailureSweepButton = document.getElementById('export-failure-sweep');
 const failureSweepBody = document.getElementById('failure-sweep-body');
 const failureSweepSummary = document.getElementById('failure-sweep-summary');
+const baselineCompareBoard = document.getElementById('baseline-compare-board');
 
 const STORAGE_KEY = 'ux_latency_lab_state_v1';
 const profileMap = {
@@ -101,6 +104,7 @@ function defaultState() {
     optimisticRuns: 0,
     optimisticRollbacks: 0,
     eventEntries: [],
+    baselineSnapshot: null,
   };
 }
 
@@ -125,6 +129,7 @@ function loadState() {
       optimisticRollbacks: Number.isFinite(parsed.optimisticRollbacks) ? parsed.optimisticRollbacks : 0,
       eventEntries: Array.isArray(parsed.eventEntries) ? parsed.eventEntries : [],
       delayResults: Array.isArray(parsed.delayResults) ? parsed.delayResults : [],
+      baselineSnapshot: parsed.baselineSnapshot && typeof parsed.baselineSnapshot === 'object' ? parsed.baselineSnapshot : null,
     };
   } catch (error) {
     return defaultState();
@@ -167,6 +172,74 @@ function hydrateFromUrlState() {
 function average(values) {
   if (!values.length) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function buildSessionSnapshot(label = 'Current session') {
+  const avgDelay = state.delayResults.length ? average(state.delayResults) : null;
+  const p95Delay = state.delayResults.length ? percentile(state.delayResults, 95) : null;
+  const spinnerAvg = state.loadRatings.spinner.length ? average(state.loadRatings.spinner) : null;
+  const skeletonAvg = state.loadRatings.skeleton.length ? average(state.loadRatings.skeleton) : null;
+  const rollbackRate = state.optimisticRuns ? (state.optimisticRollbacks / state.optimisticRuns) * 100 : null;
+  return {
+    label,
+    savedAt: new Date().toISOString(),
+    avgDelay,
+    p95Delay,
+    spinnerAvg,
+    skeletonAvg,
+    rollbackRate,
+    standardRuns: state.standardRuns,
+    optimisticRuns: state.optimisticRuns,
+  };
+}
+
+function renderBaselineCompareBoard() {
+  if (!baselineCompareBoard) return;
+
+  if (!state.baselineSnapshot) {
+    baselineCompareBoard.innerHTML = '<p><strong>Baseline compare:</strong> save a baseline session when you want before/after evidence instead of one-off readings.</p>';
+    return;
+  }
+
+  const baseline = state.baselineSnapshot;
+  const current = buildSessionSnapshot();
+  const delayDelta =
+    baseline.avgDelay === null || current.avgDelay === null ? null : current.avgDelay - baseline.avgDelay;
+  const p95Delta =
+    baseline.p95Delay === null || current.p95Delay === null ? null : current.p95Delay - baseline.p95Delay;
+  const rollbackDelta =
+    baseline.rollbackRate === null || current.rollbackRate === null ? null : current.rollbackRate - baseline.rollbackRate;
+  const loaderDelta =
+    baseline.spinnerAvg === null || baseline.skeletonAvg === null || current.spinnerAvg === null || current.skeletonAvg === null
+      ? 'Loader comparison incomplete.'
+      : `Loader winner moved from ${baseline.skeletonAvg >= baseline.spinnerAvg ? 'skeleton' : 'spinner'} to ${
+          current.skeletonAvg >= current.spinnerAvg ? 'skeleton' : 'spinner'
+        }.`;
+
+  baselineCompareBoard.innerHTML = `
+    <p><strong>Baseline compare:</strong> against ${baseline.label} saved ${new Date(baseline.savedAt).toLocaleString()}.</p>
+    <p><strong>Average delay:</strong> ${
+      delayDelta === null ? 'needs delay trials in both sessions.' : `${delayDelta >= 0 ? '+' : ''}${delayDelta.toFixed(1)} ms`
+    } | <strong>P95:</strong> ${p95Delta === null ? 'needs delay trials in both sessions.' : `${p95Delta >= 0 ? '+' : ''}${p95Delta.toFixed(1)} ms`}.</p>
+    <p><strong>Rollback rate:</strong> ${
+      rollbackDelta === null ? 'needs optimistic runs in both sessions.' : `${rollbackDelta >= 0 ? '+' : ''}${rollbackDelta.toFixed(1)} pts`
+    }.</p>
+    <p><strong>Loader read:</strong> ${loaderDelta}</p>
+  `;
+}
+
+function saveBaselineSnapshot() {
+  state.baselineSnapshot = buildSessionSnapshot('Saved baseline');
+  saveState();
+  renderBaselineCompareBoard();
+  addLog('Saved the current session as a baseline comparison point.', 'success');
+}
+
+function clearBaselineSnapshot() {
+  state.baselineSnapshot = null;
+  saveState();
+  renderBaselineCompareBoard();
+  addLog('Cleared the saved baseline snapshot.', 'success');
 }
 
 function percentile(values, pct) {
@@ -471,6 +544,7 @@ function renderInsights() {
   }
 
   labInsights.innerHTML = lines.map((line) => `<p>${line}</p>`).join('');
+  renderBaselineCompareBoard();
 }
 
 function renderSessionMemo() {
@@ -1607,6 +1681,7 @@ function resetSession() {
   state.optimisticRuns = fresh.optimisticRuns;
   state.optimisticRollbacks = fresh.optimisticRollbacks;
   state.eventEntries = fresh.eventEntries;
+  state.baselineSnapshot = fresh.baselineSnapshot;
 
   standardStatus.textContent = 'Idle';
   optimisticStatus.textContent = 'Idle';
@@ -1639,6 +1714,7 @@ function exportSessionData() {
     optimisticRuns: state.optimisticRuns,
     optimisticRollbacks: state.optimisticRollbacks,
     eventEntries: state.eventEntries,
+    baselineSnapshot: state.baselineSnapshot,
   };
 
   const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
@@ -1721,6 +1797,7 @@ function importSessionData(file) {
       state.optimisticRuns = Number.isFinite(parsed.optimisticRuns) ? parsed.optimisticRuns : 0;
       state.optimisticRollbacks = Number.isFinite(parsed.optimisticRollbacks) ? parsed.optimisticRollbacks : 0;
       state.eventEntries = Array.isArray(parsed.eventEntries) ? parsed.eventEntries.slice(0, 14) : [];
+      state.baselineSnapshot = parsed.baselineSnapshot && typeof parsed.baselineSnapshot === 'object' ? parsed.baselineSnapshot : null;
 
       renderDelayResults();
       renderProfileBenchmarks(state.profileBenchmarks);
@@ -1793,6 +1870,8 @@ copySessionLinkButton.addEventListener('click', async () => {
     addLog('Clipboard copy failed while building the session link.', 'fail');
   }
 });
+saveBaselineButton?.addEventListener('click', saveBaselineSnapshot);
+clearBaselineButton?.addEventListener('click', clearBaselineSnapshot);
 importSessionButton.addEventListener('click', () => importFileInput.click());
 importFileInput.addEventListener('change', () => {
   const file = importFileInput.files?.[0];
