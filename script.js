@@ -1431,6 +1431,39 @@ function exportProfileBenchmarksCsv() {
   addLog('Exported profile benchmark CSV.', 'success');
 }
 
+function renderFailureSweepState() {
+  if (failureSweepBody) {
+    failureSweepBody.innerHTML = lastFailureSweepRows.length
+      ? lastFailureSweepRows.map(
+        (row) => `
+        <tr>
+          <td>${row.rate}%</td>
+          <td>${row.confirmed}</td>
+          <td>${row.rollback}</td>
+          <td>${row.recommendation}</td>
+        </tr>
+      `
+      ).join('')
+      : '<tr><td colspan="4" class="empty">Run the sweep to compare optimistic UI viability across failure rates.</td></tr>';
+  }
+
+  if (!failureSweepSummary) return;
+  if (!lastFailureSweepRows.length) {
+    failureSweepSummary.innerHTML = '<p>Run the sweep to turn the failure-rate table into a policy boundary.</p>';
+    return;
+  }
+
+  const safeBand = lastFailureSweepRows.filter((row) => row.recommendation === 'Optimistic UI is viable');
+  const guardedBand = lastFailureSweepRows.filter((row) => row.recommendation === 'Use optimistic UI with explicit undo');
+  const riskyBand = lastFailureSweepRows.filter((row) => row.recommendation === 'Prefer standard confirmation');
+  const safest = safeBand.length ? `${safeBand[0].rate}%-${safeBand[safeBand.length - 1].rate}%` : 'none';
+  const guarded = guardedBand.length ? `${guardedBand[0].rate}%-${guardedBand[guardedBand.length - 1].rate}%` : 'none';
+  const risky = riskyBand.length ? `${riskyBand[0].rate}%+` : 'none';
+  failureSweepSummary.innerHTML = `
+    <p><strong>Policy boundary:</strong> optimistic UI is comfortable in the ${safest} failure band, needs explicit undo in the ${guarded} band, and becomes hard to justify at ${risky}.</p>
+  `;
+}
+
 function sweepFailureRates() {
   if (!failureSweepBody) return;
 
@@ -1453,31 +1486,7 @@ function sweepFailureRates() {
     };
   });
   lastFailureSweepRows = rows;
-
-  failureSweepBody.innerHTML = rows
-    .map(
-      (row) => `
-        <tr>
-          <td>${row.rate}%</td>
-          <td>${row.confirmed}</td>
-          <td>${row.rollback}</td>
-          <td>${row.recommendation}</td>
-        </tr>
-      `
-    )
-    .join('');
-
-  if (failureSweepSummary) {
-    const safeBand = rows.filter((row) => row.recommendation === 'Optimistic UI is viable');
-    const guardedBand = rows.filter((row) => row.recommendation === 'Use optimistic UI with explicit undo');
-    const riskyBand = rows.filter((row) => row.recommendation === 'Prefer standard confirmation');
-    const safest = safeBand.length ? `${safeBand[0].rate}%-${safeBand[safeBand.length - 1].rate}%` : 'none';
-    const guarded = guardedBand.length ? `${guardedBand[0].rate}%-${guardedBand[guardedBand.length - 1].rate}%` : 'none';
-    const risky = riskyBand.length ? `${riskyBand[0].rate}%+` : 'none';
-    failureSweepSummary.innerHTML = `
-      <p><strong>Policy boundary:</strong> optimistic UI is comfortable in the ${safest} failure band, needs explicit undo in the ${guarded} band, and becomes hard to justify at ${risky}.</p>
-    `;
-  }
+  renderFailureSweepState();
 
   addLog('Failure-rate sweep completed for optimistic UI guidance.', 'success');
 }
@@ -1704,8 +1713,12 @@ function resetSession() {
 function exportSessionData() {
   const exported = {
     exportedAt: new Date().toISOString(),
+    activeProfile: networkProfile.value,
+    delayInput: Number(delayInput.value),
+    failRate: Number(failRate.value),
     delayResults: state.delayResults,
     profileBenchmarks: state.profileBenchmarks,
+    failureSweepRows: lastFailureSweepRows,
     loadRatings: state.loadRatings,
     standardLikes: state.standardLikes,
     optimisticLikes: state.optimisticLikes,
@@ -1782,9 +1795,28 @@ function importSessionData(file) {
   reader.onload = () => {
     try {
       const parsed = JSON.parse(String(reader.result || '{}'));
+      const requestedProfile = typeof parsed.activeProfile === 'string' ? parsed.activeProfile : networkProfile.value;
+      if (profileMap[requestedProfile]) {
+        networkProfile.value = requestedProfile;
+      }
+      if (Number.isFinite(parsed.delayInput) && parsed.delayInput >= 0 && parsed.delayInput <= 3000) {
+        delayInput.value = String(parsed.delayInput);
+      }
+      if (Number.isFinite(parsed.failRate) && parsed.failRate >= 0 && parsed.failRate <= 80) {
+        failRate.value = String(parsed.failRate);
+      }
+      failRateLabel.textContent = failRate.value;
       state.delayResults = Array.isArray(parsed.delayResults) ? parsed.delayResults.slice(0, 20) : [];
       state.profileBenchmarks = Array.isArray(parsed.profileBenchmarks)
         ? parsed.profileBenchmarks.slice(0, 12).map((row) => ({ ...row, stdev: Number.isFinite(row?.stdev) ? row.stdev : 0 }))
+        : [];
+      lastFailureSweepRows = Array.isArray(parsed.failureSweepRows)
+        ? parsed.failureSweepRows.slice(0, 8).map((row) => ({
+          ...row,
+          rate: Number.isFinite(row?.rate) ? row.rate : 0,
+          confirmed: Number.isFinite(row?.confirmed) ? row.confirmed : 0,
+          rollback: Number.isFinite(row?.rollback) ? row.rollback : 0,
+        }))
         : [];
       state.loadRatings = {
         spinner: Array.isArray(parsed.loadRatings?.spinner) ? parsed.loadRatings.spinner.slice(0, 40) : [],
@@ -1801,6 +1833,7 @@ function importSessionData(file) {
 
       renderDelayResults();
       renderProfileBenchmarks(state.profileBenchmarks);
+      renderFailureSweepState();
       renderLoadingSummary();
       renderOutcomeStats();
       renderInsights();
